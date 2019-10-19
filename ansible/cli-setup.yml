@@ -1,0 +1,39 @@
+---
+- name: Install tree
+  apt: name=tree state=present
+
+- name: Install jid
+  apt: name=jid state=present
+
+- name: Install ripgrep from .deb package
+  apt:
+    deb: https://github.com/BurntSushi/ripgrep/releases/download/11.0.2/ripgrep_11.0.2_amd64.deb
+    
+- name: Install fd from .deb package
+  apt:
+    deb: https://github.com/sharkdp/fd/releases/download/v7.4.0/fd_7.4.0_amd64.deb
+
+- name: Install jq
+  apt: name=jq state=present
+
+- name: Install autojump
+  apt: name=autojump state=present
+  register: autojump_status
+
+- name: Install vifm 
+  apt: name=vifm state=present
+
+- name: Install sqlite3 cli
+  apt: name=sqlite3 state=present
+
+- name: Install tmuxp
+  apt: name=tmuxp state=present
+
+- name: Install Java jre
+  apt: name=default-jre state=present
+
+- name: copy autojump profile
+  copy:
+    src=/usr/share/autojump/autojump.sh
+    dest=/etc/profile.d/autojump.sh
+  when: autojump_status.changed

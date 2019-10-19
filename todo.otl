@@ -1,0 +1,9 @@
+[_] Create project on github
+Create dataframe
+	Save dataframe to sqlite
+	Save dataframe to postgres
+	Save dataframe to presto
+	Save dataframe to hdfs file
+	Save dataframe to S3 file
+
+

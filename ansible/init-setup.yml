@@ -1,0 +1,15 @@
+---
+- name: upgrade system and packages
+  apt: upgrade=dist
+
+- name: install pip3
+  apt: name=python3-pip state=present
+
+- name: libpg-dev postgres library for pgcli
+  apt: name=libpq-dev state=present
+
+- name: install psql common
+  apt: name=postgresql-client-common state=present
+
+- name: install psql selected version
+  apt: name=postgresql-client-10 state=present

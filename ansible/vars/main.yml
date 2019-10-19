@@ -1,0 +1,3 @@
+---
+hostname: amundsen-vm
+ntp_timezone: America/Los_Angeles
