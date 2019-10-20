@@ -37,3 +37,6 @@
     src=/usr/share/autojump/autojump.sh
     dest=/etc/profile.d/autojump.sh
   when: autojump_status.changed
+
+- name: Install sqlite3 cli
+  apt: name=sqlite3 state=present

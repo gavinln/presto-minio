@@ -1,0 +1,9 @@
+---
+- name: install numpy
+  pip: name=numpy state=present
+
+- name: install pandas
+  pip: name=pandas state=present
+
+- name: install faker
+  pip: name=faker state=present

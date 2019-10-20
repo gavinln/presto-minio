@@ -19,3 +19,19 @@
 
 - name: install stormssh
   pip: name=stormssh state=present
+
+- name: install ipython
+  pip: name=ipython state=present
+
+- name: install sqlalchemy
+  pip: name=sqlalchemy state=present
+
+- name: install pyhive[presto]
+  pip: name="pyhive[presto]" state=present
+
+- name: install sasl for pyhive[hive]
+  apt: name=libsasl2-dev state=present
+
+- name: install pyhive[hive]
+  pip: name="pyhive[hive]" state=present
+

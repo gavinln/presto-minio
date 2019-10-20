@@ -3,7 +3,7 @@
 * Source code - [Github][1]
 * Author - Gavin Noronha - <gavinln@hotmail.com>
 
-[1]: 
+[1]: https://github.com/gavinln/presto-minio
 
 ## About
 
@@ -92,13 +92,128 @@ set +o allexport
 docker-compose up -d
 ```
 
+10. Set username/password for Superset
+
+```
+./scripts/init-superset.sh
+```
+
+11. Initialize Hue
+
+```
+./scripts/init-hue.sh
+```
+
+20. To take down the entire software stack
+
+```
+docker-compose down
+```
+
 ## Setup the software
 
-1. Follow the instructions [here][200]
+1. Start the Beeline command line interface
+
+```
+./scripts/beeline.sh
+```
+
+2. Create a table in Hive
+
+```
+CREATE TABLE pokes (foo INT, bar STRING);
+LOAD DATA LOCAL INPATH '/opt/hive/examples/files/kv1.txt' OVERWRITE INTO TABLE pokes;
+SELECT * FROM pokes LIMIT 1;
+!quit
+```
+
+3. View the dataset in the HDFS volume
+
+```
+http://192.168.33.10:50070/explorer.html#/user/hive/warehouse
+```
+
+4. Start the Presto CLI
+
+```
+./scripts/presto-cli.sh
+```
+
+5. Query the table just created
+
+```
+SELECT * FROM pokes LIMIT 1;
+```
+
+6. Quit the Presto CLI
+
+```
+quit
+```
+
+7. Setup data in S3
+
+```
+sudo mkdir -p /data/minio/data/datasets/iris
+cd /data/minio/data/datasets/iris
+sudo wget https://raw.githubusercontent.com/uiuc-cse/data-fa14/gh-pages/data/iris.csv
+cd -
+```
+
+8. View the data in the object stores (similar to S3) at http://192.168.33.10:9000
+
+9. Start Beeline to create a table based on data in S3
+
+```
+CREATE EXTERNAL TABLE iris (sepal_length DECIMAL, sepal_width DECIMAL, 
+petal_length DECIMAL, petal_width DECIMAL, species STRING) 
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+LOCATION 's3a://datasets/iris/'
+TBLPROPERTIES ("skip.header.line.count"="1");
+!quit
+```
+
+10. Start the Presto CLI
+
+```
+./scripts/presto-cli.sh
+```
+
+11. Query data from the iris table on S3 using Preso
+
+```
+SELECT * FROM iris LIMIT 1;
+quit
+```
+
+20. Follow the instructions [here][200]
 
 [200]: https://johs.me/posts/big-data-stack-running-sql-queries/
 
+Access the servers here
+
+    * Hadoop namenode: http://192.168.33.10:50070
+    * Minio: http://192.168.33.10:9000
+    * Presto: http://192.168.33.10:8080
+    * Superset: http://192.168.33.10:8088
+    * Hue: http://192.168.33.10:8888
+
 ## Links
+
+### Presto releases
+
+https://prestodb.github.io/docs/current/release.html
+
+### Superset releases
+
+https://github.com/apache/incubator-superset/releases
+
+### Minio versions
+
+https://github.com/minio/minio/releases
+
+
+### Other software
 
 [Python driver for Presto from Dropbox][1020]
 
@@ -115,3 +230,34 @@ docker-compose up -d
 [On premise AI with Presto and Minio][1050]
 
 [1050]: https://blog.minio.io/building-an-on-premise-ml-ecosystem-with-minio-powered-by-presto-weka-r-and-s3select-feature-fefbbaa87054
+
+### Miscellaneous
+
+On Presto
+
+```sql
+select length(from_hex(replace('2001:0db8:aaaa:bbbb:cccc:dddd:eeee:aaaa', ':', '')));  -- 16
+select length(replace('2001:0db8:aaaa:bbbb:cccc:dddd:eeee:aaaa', ':', ''));  -- 32
+select length('2001:0db8:aaaa:bbbb:cccc:dddd:eeee:aaaa');  -- 39
+select CAST(from_hex(replace('2001:0db8:aaaa:bbbb:cccc:dddd:eeee:aaaa', ':', '')) AS IPADDRESS);  -- 2001:db8:aaaa:bbbb:cccc:dddd:eeee:aaaa
+select CAST(from_hex(replace('0000:0000:0000:0000:0000:ffff:eeee:aaaa', ':', '')) AS IPADDRESS);  -- 238.238.170.170
+select CAST(from_hex(replace('2001:0000:0000:0000:cccc:0000:0000:aaaa', ':', '')) AS IPADDRESS);  --  2001::cccc:0:0:aaaa
+select CAST('2001:db8:0000:000:cccc:0000:0000:aaaa' AS IPADDRESS);  -- 2001:db8::cccc:0:0:aaaa
+select from_hex('20010db8aaaabbbbccccddddeeeeaaaa');  -- 20 01 0d b8 aa aa bb bb cc cc dd dd ee ee aa aa
+```
+
+#### Presto query fails
+
+```sql
+-- Query 20191020_171021_00057_88qke failed: Cannot write to non-managed Hive table
+CREATE TABLE ip_data2 ( name varchar, email varchar, city varchar, state varchar, date_time TIMESTAMP, randomdata BIGINT, ipv4 VARBINARY, ipv6 VARBINARY ) with (format='ORC', external_location='s3a://customer-data-orc/');
+insert into ip_data2 values('name1', 'email@co.com', 'city1', 'state1', localtimestamp, 2344, from_hex('eeeeaaaa'), from_hex('20010db8aaaabbbbccccddddeeeeaaaa'));
+```
+
+#### Presto query succeeds
+
+```sql
+CREATE TABLE ip_data4 ( name varchar, email varchar, city varchar, state varchar, date_time TIMESTAMP, randomdata BIGINT, ipv4 VARBINARY, ipv6 VARBINARY );
+insert into ip_data4 values('name1', 'email@co.com', 'city1', 'state1', localtimestamp, 2344, from_hex('eeeeaaaa'), from_hex('20010db8aaaabbbbccccddddeeeeaaaa'));
+```
+
