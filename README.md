@@ -65,19 +65,21 @@ sudo mkdir /data
 sudo chown vagrant:vagrant /data
 ```
 
-6. Clone the project with the Docker compose file
+## Run superset, hue, presto, hive using Docker
+
+1. Clone the project with the Docker compose file
 
 ```
 git clone https://github.com/johannestang/bigdata_stack
 ```
 
-7. Change to the project to create Docker containers
+2. Change to the project to create Docker containers
 
 ```
 cd bigdata_stack/
 ```
 
-8. Setup the environment
+3. Setup the environment
 
 ```
 cp sample.env .env
@@ -86,31 +88,31 @@ source .env
 set +o allexport
 ```
 
-9. Create the containers
+4. Create the containers
 
 ```
 docker-compose up -d
 ```
 
-10. Set username/password for Superset
+5. Set username/password for Superset
 
 ```
 ./scripts/init-superset.sh
 ```
 
-11. Initialize Hue
+6. Initialize Hue
 
 ```
 ./scripts/init-hue.sh
 ```
 
-20. To take down the entire software stack
+7. To take down the entire software stack
 
 ```
 docker-compose down
 ```
 
-## Setup the software
+### Setup the software
 
 1. Start the Beeline command line interface
 
@@ -186,7 +188,7 @@ SELECT * FROM iris LIMIT 1;
 quit
 ```
 
-20. Follow the instructions [here][200]
+12. Follow the instructions [here][200]
 
 [200]: https://johs.me/posts/big-data-stack-running-sql-queries/
 
@@ -197,6 +199,37 @@ Access the servers here
     * Presto: http://192.168.33.10:8080
     * Superset: http://192.168.33.10:8088
     * Hue: http://192.168.33.10:8888
+
+## Setup Presto, Mino and Hive
+
+1. Clone the project
+
+```
+git clone https://github.com/starburstdata/presto-minio
+```
+
+2. Change to the project directory
+
+```
+cd presto-mino
+```
+
+3. Start Presto and Minio
+
+```
+docker-compose up -d
+```
+
+4. View Mino at http://192.168.33.10:9000/
+
+Use the access key and secret access key from the docker-compose.yml file
+There are two folders called customer-data-text and customer-data-json
+
+Create a new folder called customer-data-orc
+
+5. View the Presto WebUI at http://192.168.33.10:8080/
+
+6. Follow instructions at https://github.com/starburstdata/presto-minio
 
 ## Links
 
@@ -230,6 +263,10 @@ https://github.com/minio/minio/releases
 [On premise AI with Presto and Minio][1050]
 
 [1050]: https://blog.minio.io/building-an-on-premise-ml-ecosystem-with-minio-powered-by-presto-weka-r-and-s3select-feature-fefbbaa87054
+
+Command line client for multiple databases: [usql][1060]
+
+[1060]: https://github.com/xo/usql
 
 ### Miscellaneous
 

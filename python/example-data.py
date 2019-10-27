@@ -52,9 +52,16 @@ def write_to_sqlite():
         df.to_sql('ip_data', conn, if_exists='replace', index=False)
 
 
-def get_presto():
+def get_presto_pokes():
     cursor = presto.connect('localhost').cursor()
     cursor.execute('SELECT * from pokes limit 10')
+    for row in cursor.fetchall():
+        print(row)
+
+
+def get_presto_customer():
+    cursor = presto.connect('localhost').cursor()
+    cursor.execute('SELECT * from minio.default.customer_text')
     for row in cursor.fetchall():
         print(row)
 
@@ -89,15 +96,20 @@ def create_presto():
         cursor.close()
 
 
-def main():
-    # write_to_sqlite()
-    # get_presto()
-    # create_presto()
+def write_to_presto():
     df = pd.DataFrame(create_rows(50))
     engine = create_engine('presto://localhost:8080/hive/default')
     embed()
     with engine.connect() as conn:
         df.to_sql('ip_data', conn, if_exists='append', index=False)
+
+
+def main():
+    # write_to_sqlite()
+    # get_presto_pokes()
+    # create_presto()
+    get_presto_customer()
+
     # embed()
 
 
