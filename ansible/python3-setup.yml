@@ -35,3 +35,18 @@
 - name: install pyhive[hive]
   pip: name="pyhive[hive]" state=present
 
+# libraries below required for intake
+- name: install pyarrow
+  pip: name=pyarrow state=present
+
+- name: install intake
+  pip: name=intake state=present
+
+- name: install intake-parquet
+  pip: name=intake-parquet state=present
+
+- name: install s3fs
+  pip: name=s3fs state=present
+
+- name: install snappy decompression
+  pip: name=python-snappy state=present

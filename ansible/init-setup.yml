@@ -13,3 +13,6 @@
 
 - name: install psql selected version
   apt: name=postgresql-client-10 state=present
+
+- name: install library for snappy compression
+  apt: name=libsnappy-dev state=present

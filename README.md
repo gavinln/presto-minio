@@ -231,6 +231,8 @@ Create a new folder called customer-data-orc
 
 6. Follow instructions at https://github.com/starburstdata/presto-minio
 
+7. Try intake: https://intake.readthedocs.io/en/latest/index.html
+
 ## Links
 
 ### Presto releases
@@ -297,4 +299,3 @@ insert into ip_data2 values('name1', 'email@co.com', 'city1', 'state1', localtim
 CREATE TABLE ip_data4 ( name varchar, email varchar, city varchar, state varchar, date_time TIMESTAMP, randomdata BIGINT, ipv4 VARBINARY, ipv6 VARBINARY );
 insert into ip_data4 values('name1', 'email@co.com', 'city1', 'state1', localtimestamp, 2344, from_hex('eeeeaaaa'), from_hex('20010db8aaaabbbbccccddddeeeeaaaa'));
 ```
-
