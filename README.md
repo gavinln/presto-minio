@@ -272,6 +272,34 @@ Command line client for multiple databases: [usql][1060]
 
 ### Miscellaneous
 
+#### usql go language CLI tool
+
+Use usql to connect to Presto
+
+```
+usql presto://192.168.33.10:8080/minio/default
+```
+
+Execute query from the command line and get the results
+
+```
+usql presto://192.168.33.10:8080/minio/default -c "select * from customer_orc;"
+```
+
+#### Java CLI and GUI tool to connect to databases via JDBC
+
+To setup SqlWorkbench
+WORKBENCH_JDK=C:\sw\java\jdk-13.0.1
+
+Download Java from http://jdk.java.net/
+Use JDK 13.0.1 and the zip file for Windows
+
+Run `SQLWorkbench64.exe` to launch the GUI
+
+Run `sqlwbconsole64.exe` to launch the command line interface
+
+Run `WbHelp` for a list of commands
+
 On Presto
 
 ```sql
