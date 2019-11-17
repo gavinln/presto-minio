@@ -33,37 +33,128 @@ machine disk. Install the following plugin to resize the disk.
 
 1. List the vagrant plugins
 
-```
-vagrant plugin list
-```
+    ```
+    vagrant plugin list
+    ```
 
 2. Install the Vagrant [disksize][100] plugin
 
-```
-vagrant plugin install vagrant-disksize
-```
+    ```
+    vagrant plugin install vagrant-disksize
+    ```
 
 [100]: https://github.com/sprotheroe/vagrant-disksize
 
 
 3. Login to the virtual machine
 
-```
-vagrant ssh
-```
+    ```
+    vagrant ssh
+    ```
 
 4. Change to the root directory
 
-```
-cd /vagrant
-```
+    ```
+    cd /vagrant
+    ```
 
 5. Create a directory of Minio object storage (like S3)
 
+    ```
+    sudo mkdir /data
+    sudo chown vagrant:vagrant /data
+    ```
+
+## Run Postgres
+
+1. Change to the Postgres directory
+cd /vagrant/postgres
+
+2. Start the Docker containers
+docker-compose up -d
+
+3. Connect to adminer at http://192.168.33.10:8080
+
+4. Enter the following options
+
 ```
-sudo mkdir /data
-sudo chown vagrant:vagrant /data
+System: PostgresSQL
+Server: db
+Username: postgres
+Password: example
+Database: postgres
 ```
+
+5. Run the "SQL command"
+
+```
+create database dbt_example;
+```
+
+6. Change to dbt directory
+
+```
+cd /vagrant/python/postgres-dbt_example
+```
+
+7. Start the dbt project
+
+```
+dbt init postgres-dbt_example
+```
+
+8. Add to the ~/.dbt/profiles.yml
+
+```
+dbt_example:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      database: dbt_example
+      user: postgres
+      pass: example
+      host: localhost
+      port: 5432
+      schema: default
+      threads: 1
+```
+
+9. Test connection to the dbt_example database
+
+```
+psql -h localhost -U postgres -d dbt_example
+```
+
+10. Change the dbt_project.yml profile to dbt_example
+
+11. List the resources of the project
+
+```
+dbt list
+```
+
+## Jaffle shop project
+
+Clone the Jaffle shop project and setup ~/.dbt/profiles.yml with the following
+settings.
+
+```
+jaffle_shop:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      database: dbt_example
+      user: postgres
+      pass: example
+      host: localhost
+      port: 5432
+      schema: default
+      threads: 1
+```
+
+https://github.com/fishtown-analytics/jaffle_shop
 
 ## Run superset, hue, presto, hive using Docker
 
@@ -200,7 +291,7 @@ Access the servers here
     * Superset: http://192.168.33.10:8088
     * Hue: http://192.168.33.10:8888
 
-## Setup Presto, Mino and Hive
+## Setup Presto, Minio and Hive
 
 1. Clone the project
 
@@ -211,7 +302,16 @@ git clone https://github.com/starburstdata/presto-minio
 2. Change to the project directory
 
 ```
-cd presto-mino
+cd /vagrant/presto-minio
+```
+
+3. Add to file /vagrant/presto-minio/presto/minio.properties
+
+```
+hive.metastore-cache-ttl=0s
+hive.metastore-refresh-interval = 5s
+hive.allow-drop-table=true
+hive.allow-rename-table=true
 ```
 
 3. Start Presto and Minio
@@ -229,48 +329,132 @@ Create a new folder called customer-data-orc
 
 5. View the Presto WebUI at http://192.168.33.10:8080/
 
-6. Follow instructions at https://github.com/starburstdata/presto-minio
+6. Connect to the Hadoop master
 
-7. Try intake: https://intake.readthedocs.io/en/latest/index.html
+```
+docker exec -it hadoop-master /bin/bash
+```
+
+7. Start hive
+
+```
+su - hdfs
+hive
+```
+
+8. Create the customer_text table
+
+```
+use default;
+create external table customer_text(id string, fname string, lname string) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE location 's3a://customer-data-text/';
+select * from customer_text;
+```
+
+9. Exit the hive cli
+
+```
+exit;
+```
+
+10. Exit the Docker container
+
+```
+exit
+```
+
+10. Connect to Presto
+
+```
+docker exec -it presto presto-cli
+```
+
+11. Query data from Presto
+
+```
+use minio.default;
+show tables;
+select * from customer_text;
+```
+
+12. Exit from the Presto cli
+
+```
+quit
+```
+
+13. Follow instructions at https://github.com/starburstdata/presto-minio
+
+14. Try intake: https://intake.readthedocs.io/en/latest/index.html
+
+## DBT
+
+1. Change to the dbt project root
+
+    ```
+    cd /vagrant/python
+    ```
+
+2. Create a project
+
+    ```
+    dbt init presto-customer
+    ```
+
+2. Create a ~/.dbt/profiles.yml file
+
+    ```
+    presto-customer:
+      target: dev
+      outputs:
+        dev:
+          type: presto
+          method: none
+          database: minio
+          host: localhost
+          port: 8080
+          schema: default
+          threads: 1
+    ```
 
 ## Links
 
-### Presto releases
+1. [Presto releases][1000]
 
-https://prestodb.github.io/docs/current/release.html
+[1000]: https://prestodb.github.io/docs/current/release.html
 
-### Superset releases
+2. [Superset releases][1010]
 
-https://github.com/apache/incubator-superset/releases
+[1010]: https://github.com/apache/incubator-superset/releases
 
-### Minio versions
+3. [Minio versions][1020]
 
-https://github.com/minio/minio/releases
-
+[1020]: https://github.com/minio/minio/releases
 
 ### Other software
 
-[Python driver for Presto from Dropbox][1020]
+* [Python driver for Presto from Dropbox][1120]
 
-[1020]: https://github.com/dropbox/PyHive
+[1120]: https://github.com/dropbox/PyHive
 
-[Presto with Minio][1030]
+* [Presto with Minio][1130]
 
-[1030]: https://johs.me/posts/big-data-stack-running-sql-queries/
+[1130]: https://johs.me/posts/big-data-stack-running-sql-queries/
 
-[Presto Minio Docker][1040]
+[Presto Minio Docker][1140]
 
-[1040]: https://github.com/starburstdata/presto-minio
+[1140]: https://github.com/starburstdata/presto-minio
 
-[On premise AI with Presto and Minio][1050]
+* [On premise AI with Presto and Minio][1150]
 
-[1050]: https://blog.minio.io/building-an-on-premise-ml-ecosystem-with-minio-powered-by-presto-weka-r-and-s3select-feature-fefbbaa87054
+[1150]: https://blog.minio.io/building-an-on-premise-ml-ecosystem-with-minio-powered-by-presto-weka-r-and-s3select-feature-fefbbaa87054
 
-Command line client for multiple databases: [usql][1060]
+Command line client for multiple databases: [usql][1160]
 
-[1060]: https://github.com/xo/usql
+[1160]: https://github.com/xo/usql
 
 ### Miscellaneous
+
+Other tools
 
 #### usql go language CLI tool
 
@@ -300,7 +484,7 @@ Run `sqlwbconsole64.exe` to launch the command line interface
 
 Run `WbHelp` for a list of commands
 
-On Presto
+#### IP addresses on Presto
 
 ```sql
 select length(from_hex(replace('2001:0db8:aaaa:bbbb:cccc:dddd:eeee:aaaa', ':', '')));  -- 16

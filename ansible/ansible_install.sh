@@ -26,6 +26,8 @@ if ! command -v ansible >/dev/null; then
   fi
 
   echo "Installing pip."
+  sudo apt-get update
+  sudo apt-get install -y python3-distutils
   wget https://bootstrap.pypa.io/get-pip.py
   python3 get-pip.py && rm -f get-pip.py
 

@@ -50,3 +50,9 @@
 
 - name: install snappy decompression
   pip: name=python-snappy state=present
+
+- name: install data build tool
+  pip: name=dbt state=present
+
+- name: install data build tool - presto
+  pip: name="dbt-presto" state=present
