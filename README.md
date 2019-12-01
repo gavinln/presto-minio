@@ -10,7 +10,7 @@
 This project provides a [Ubuntu (18.04)][10] [Vagrant][20] Virtual Machine (VM)
 with multiple big data projects. It uses Docker containers to setup
 [Hadoop][30], [Hive][40], [Presto][50], [Minio][60], [Superset][70],
-[Hue][80] 
+[Hue][80]. It also use Database tool (DBT) to transform data using a ELT process.
 
 [10]: http://releases.ubuntu.com/18.04/
 [20]: http://www.vagrantup.com/
@@ -68,10 +68,16 @@ machine disk. Install the following plugin to resize the disk.
 ## Run Postgres
 
 1. Change to the Postgres directory
+
+```
 cd /vagrant/postgres
+```
 
 2. Start the Docker containers
+
+```
 docker-compose up -d
+```
 
 3. Connect to adminer at http://192.168.33.10:8080
 
@@ -126,7 +132,7 @@ dbt_example:
 psql -h localhost -U postgres -d dbt_example
 ```
 
-10. Change the dbt_project.yml profile to dbt_example
+10. Change the profile option in dbt_project.yml to dbt_example
 
 11. List the resources of the project
 
@@ -136,8 +142,9 @@ dbt list
 
 ## Jaffle shop project
 
-Clone the Jaffle shop project and setup ~/.dbt/profiles.yml with the following
-settings.
+1. Clone the Jaffle shop project in /vagrant/python/jaffle_shop
+
+2. Setup ~/.dbt/profiles.yml with the following settings.
 
 ```
 jaffle_shop:

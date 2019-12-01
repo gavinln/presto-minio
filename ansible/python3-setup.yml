@@ -51,6 +51,9 @@
 - name: install snappy decompression
   pip: name=python-snappy state=present
 
+- name: install postgres client
+  pip: name=pgcli state=present
+
 - name: install data build tool
   pip: name=dbt state=present
 
