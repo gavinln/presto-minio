@@ -489,6 +489,10 @@ Command line client for multiple databases: [usql][1160]
 
 [1160]: https://github.com/xo/usql
 
+[Using DBT][1170]
+
+[1170]: https://medium.com/the-telegraph-engineering/dbt-a-new-way-to-handle-data-transformation-at-the-telegraph-868ce3964eb4
+
 ### Miscellaneous
 
 Other tools
