@@ -79,6 +79,24 @@ cd /vagrant/postgres
 docker-compose up -d
 ```
 
+3. Connect to the postgres database
+
+```
+psql -h localhost -U postgres
+```
+
+4. List databases
+
+```
+\l
+```
+
+5. Create the database dbt_example;
+
+```
+create database dbt_example;
+```
+
 3. Connect to adminer at http://192.168.33.10:8080
 
 4. Enter the following options
@@ -142,9 +160,19 @@ dbt list
 
 ## Jaffle shop project
 
-1. Clone the Jaffle shop project in /vagrant/python/jaffle_shop
+1. Change to the python code directory
 
-2. Setup ~/.dbt/profiles.yml with the following settings.
+```
+cd /vagrant/python
+```
+
+2. Clone the Jaffle shop project
+
+```
+git clone https://github.com/fishtown-analytics/jaffle_shop
+```
+
+3. Setup ~/.dbt/profiles.yml with the following settings.
 
 ```
 jaffle_shop:
@@ -160,6 +188,8 @@ jaffle_shop:
       schema: default
       threads: 1
 ```
+
+4. Setup the Jaffle shop project
 
 https://github.com/fishtown-analytics/jaffle_shop
 
