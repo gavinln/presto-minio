@@ -383,7 +383,7 @@ Create a new folder called customer-data-orc
 
     ```
     use default;
-    create external table customer_text2(id string, fname string, lname string)
+    create external table customer_text(id string, fname string, lname string)
         ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
         STORED AS TEXTFILE location 's3a://customer-data-text/';
     select * from customer_text;
@@ -437,25 +437,42 @@ Create a new folder called customer-data-orc
 
     ```
     su - hdfs
-    beeline  # hive password in /etc/hive/conf/hive-site.xml
+    # !connect jdbc:hive2://localhost:10000 root root
+    # hive password in /etc/hive/conf/hive-site.xml
+    # connect to database default with user root and password root
+    beeline -u jdbc:hive2://localhost:10000/default root root
     ```
 
-3. Connect to database
-
-    ```
-    !connect jdbc:hive2://localhost:10000 root root
-    ```
-
-4. List databases
+2. List databases
 
     ```
     show databases;
     ```
 
-5. List tables
+3. Use database
+
+    ```
+    use default;
+    ```
+
+4. Create parquet tables
+
+    ```
+    create external table customer_parq(id string, fname string, lname string)
+        STORED AS PARQUET location 's3a://customer-data-parq/customer.parq';
+    insert into customer_parq select * from customer_text;
+    ```
+
+4. List tables
 
     ```
     show tables;
+    ```
+
+5. Exit beeline cli
+
+    ```
+    !exit
     ```
 
 ### Setup minio client - mc 
@@ -463,7 +480,7 @@ Create a new folder called customer-data-orc
 1. Setup minio clound storage
 
     ```
-    mc config host add minio http://192.168.33.10:9000 V42FCGRVMK24JJ8DHUYG bKhWxVF3kQoLY9kFmt91l+tDrEoZjqnWXzY9Eza
+    mc config host add minio http://localhost:9000 V42FCGRVMK24JJ8DHUYG bKhWxVF3kQoLY9kFmt91l+tDrEoZjqnWXzY9Eza
     ```
 
 2. List buckets
