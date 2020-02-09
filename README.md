@@ -357,7 +357,7 @@ hive.allow-rename-table=true
 docker-compose up -d
 ```
 
-4. View Mino at http://192.168.33.10:9000/
+4. View Minio at http://192.168.33.10:9000/
 
 Use the access key and secret access key from the docker-compose.yml file
 There are two folders called customer-data-text and customer-data-json
@@ -368,60 +368,156 @@ Create a new folder called customer-data-orc
 
 6. Connect to the Hadoop master
 
-```
-docker exec -it hadoop-master /bin/bash
-```
+    ```
+    docker exec -it hadoop-master /bin/bash
+    ```
 
 7. Start hive
 
-```
-su - hdfs
-hive
-```
+    ```
+    su - hdfs
+    hive
+    ```
 
 8. Create the customer_text table
 
-```
-use default;
-create external table customer_text(id string, fname string, lname string) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE location 's3a://customer-data-text/';
-select * from customer_text;
-```
+    ```
+    use default;
+    create external table customer_text2(id string, fname string, lname string)
+        ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+        STORED AS TEXTFILE location 's3a://customer-data-text/';
+    select * from customer_text;
+    ```
 
 9. Exit the hive cli
 
-```
-exit;
-```
+    ```
+    exit;
+    ```
 
 10. Exit the Docker container
 
-```
-exit
-```
+    ```
+    exit
+    ```
 
 10. Connect to Presto
 
-```
-docker exec -it presto presto-cli
-```
+    ```
+    docker exec -it presto presto-cli
+    ```
 
 11. Query data from Presto
 
-```
-use minio.default;
-show tables;
-select * from customer_text;
-```
+    ```
+    use minio.default;
+    show tables;
+    select * from customer_text;
+    ```
 
 12. Exit from the Presto cli
 
-```
-quit
-```
+    ```
+    quit
+    ```
 
 13. Follow instructions at https://github.com/starburstdata/presto-minio
 
 14. Try intake: https://intake.readthedocs.io/en/latest/index.html
+
+### Use beeline to run queries on Hive
+
+1. Connect to the Hadoop master
+
+    ```
+    docker exec -it hadoop-master /bin/bash
+    ```
+
+2. Start beeline
+
+    ```
+    su - hdfs
+    beeline  # hive password in /etc/hive/conf/hive-site.xml
+    ```
+
+3. Connect to database
+
+    ```
+    !connect jdbc:hive2://localhost:10000 root root
+    ```
+
+4. List databases
+
+    ```
+    show databases;
+    ```
+
+5. List tables
+
+    ```
+    show tables;
+    ```
+
+### Setup minio client - mc 
+
+1. Setup minio clound storage
+
+    ```
+    mc config host add minio http://192.168.33.10:9000 V42FCGRVMK24JJ8DHUYG bKhWxVF3kQoLY9kFmt91l+tDrEoZjqnWXzY9Eza
+    ```
+
+2. List buckets
+
+    ```
+    mc ls minio
+    ```
+
+3. List files in buckets
+
+
+## Python S3
+
+### Create the environment manually
+
+1. Create a Pipfile
+
+```
+pipenv --python $(which python3)
+```
+
+2. Setup the libraries manually
+
+```
+pipenv install ipython
+pipenv install fsspec              # needed for dask file-system operations
+pipenv install dask                # core dask only
+pipenv install "dask[array]"       # Install requirements for dask array
+pipenv install "dask[bag]"         # Install requirements for dask bag
+pipenv install "dask[dataframe]"   # Install requirements for dask dataframe
+pipenv install "dask[delayed]"     # Install requirements for dask delayed
+pipenv install "dask[distributed]" # Install requirements for distributed dask
+pipenv install awscli
+pipenv install s3fs
+```
+
+# pipenv install toolz  # for dask
+# pipenv install graphviz  # for dask
+# pipenv install pyarrow
+
+3. Setup AWS configuration
+
+```
+export AWS_ACCESS_KEY_ID=V42FCGRVMK24JJ8DHUYG
+export AWS_SECRET_ACCESS_KEY=bKhWxVF3kQoLY9kFmt91l+tDrEoZjqnWXzY9Eza
+aws configure set default.s3.signature_version s3v4
+aws --endpoint-url http://192.168.33.10:9000 s3 ls
+```
+
+4. Use Python to access the buckets
+
+```
+python3 python/s3-process.py
+```
 
 ## DBT
 
