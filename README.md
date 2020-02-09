@@ -158,6 +158,268 @@ psql -h localhost -U postgres -d dbt_example
 dbt list
 ```
 
+## Use Presto, Minio and Hive
+
+### Setup Presto, Minio and Hive
+
+1. Clone the project
+
+```
+git clone https://github.com/starburstdata/presto-minio
+```
+
+2. Change to the project directory
+
+```
+cd /vagrant/presto-minio
+```
+
+3. Add to file /vagrant/presto-minio/presto/minio.properties
+
+```
+hive.metastore-cache-ttl=0s
+hive.metastore-refresh-interval = 5s
+hive.allow-drop-table=true
+hive.allow-rename-table=true
+```
+
+3. Start Presto and Minio
+
+```
+docker-compose up -d
+```
+
+4. View Minio at http://192.168.33.10:9000/
+
+Use the access key and secret access key from the docker-compose.yml file
+There are two folders called customer-data-text and customer-data-json
+
+5. View the Presto WebUI at http://192.168.33.10:8080/
+
+6. Connect to the Hadoop master
+
+    ```
+    docker exec -it hadoop-master /bin/bash
+    ```
+
+7. Start hive
+
+    ```
+    su - hdfs
+    hive
+    ```
+
+8. Create the customer_text table
+
+    ```
+    use default;
+    create external table customer_text(id string, fname string, lname string)
+        ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+        STORED as TEXTFILE location 's3a://customer-data-text/';
+    select * from customer_text;
+    ```
+
+9. Exit the hive cli
+
+    ```
+    exit;
+    ```
+
+10. Exit the Docker container
+
+    ```
+    exit
+    ```
+
+10. Connect to Presto
+
+    ```
+    docker exec -it presto presto-cli
+    ```
+
+11. Query data from Presto
+
+    ```
+    use minio.default;
+    show tables;
+    select * from customer_text;
+    ```
+
+12. Exit from the Presto cli
+
+    ```
+    quit
+    ```
+
+13. Follow instructions at https://github.com/starburstdata/presto-minio
+
+14. Try intake: https://intake.readthedocs.io/en/latest/index.html
+
+### Use beeline to run queries on Hive
+
+1. Connect to the Hadoop master
+
+    ```
+    docker exec -it hadoop-master /bin/bash
+    ```
+
+2. Start beeline
+
+    ```
+    su - hdfs
+    # !connect jdbc:hive2://localhost:10000 root root
+    # hive password in /etc/hive/conf/hive-site.xml
+    # connect to database default with user root and password root
+    beeline -u jdbc:hive2://localhost:10000/default root root
+    ```
+
+2. List databases
+
+    ```
+    show databases;
+    ```
+
+3. Use database
+
+    ```
+    use default;
+    ```
+
+4. Create parquet tables
+
+    ```
+    create external table customer_parq(id string, fname string, lname string)
+        STORED AS PARQUET location 's3a://customer-data-parq/customer.parq';
+    insert into customer_parq select * from customer_text;
+    ```
+
+4. List tables
+
+    ```
+    show tables;
+    ```
+5. Add text to table
+
+    ```
+    load data inpath 's3a://customer-data-text/customer.csv' overwrite into table customer_text;
+    ```
+
+6. Exit beeline cli
+
+    ```
+    !exit
+    ```
+
+### Setup minio client - mc 
+
+1. Setup minio clound storage
+
+    ```
+    mc config host add minio http://localhost:9000 V42FCGRVMK24JJ8DHUYG bKhWxVF3kQoLY9kFmt91l+tDrEoZjqnWXzY9Eza
+    ```
+
+2. List buckets
+
+    ```
+    mc ls minio
+    ```
+
+3. List files in buckets
+
+
+
+### Create the environment manually
+
+1. Create a Pipfile
+
+```
+pipenv --python $(which python3)
+```
+
+2. Setup the libraries manually
+
+```bash
+pipenv install ipython
+pipenv install fsspec              # needed for dask file-system operations
+pipenv install dask                # core dask only
+pipenv install "dask[array]"       # Install requirements for dask array
+pipenv install "dask[bag]"         # Install requirements for dask bag
+pipenv install "dask[dataframe]"   # Install requirements for dask dataframe
+pipenv install "dask[delayed]"     # Install requirements for dask delayed
+pipenv install "dask[distributed]" # Install requirements for distributed dask
+pipenv install awscli
+pipenv install s3fs
+
+# pipenv install toolz  # for dask
+# pipenv install graphviz  # for dask
+# pipenv install pyarrow
+```
+
+3. Setup AWS configuration
+
+```
+export AWS_ACCESS_KEY_ID=V42FCGRVMK24JJ8DHUYG
+export AWS_SECRET_ACCESS_KEY=bKhWxVF3kQoLY9kFmt91l+tDrEoZjqnWXzY9Eza
+aws configure set default.s3.signature_version s3v4
+aws --endpoint-url http://192.168.33.10:9000 s3 ls
+```
+
+4. Use Python to access the buckets
+
+```
+python3 python/s3-process.py
+```
+
+### Presto cli
+
+1. Start the Presto cli
+
+    ```
+    mc mb minio/customer-data-parq2
+    docker exec -it presto presto-cli
+    ```
+
+2. Show catalogs
+
+    ```
+    show catalogs;
+    ```
+
+3. Show schemas
+
+    ```
+    show schemas from minio;
+    ```
+
+4. Use a schema
+
+    ```
+    use minio.default;
+    ```
+
+5. Show catalogs
+
+    ```
+    show schemas;
+    ```
+
+6. Show tables;
+
+    ```
+    show tables;
+    ```
+
+7. Create a parquet table using Presto
+
+    ```
+    create table customer_parq2(id varchar, fname varchar, lname varchar)
+    with (
+        format = 'PARQUET',
+        external_location = 's3a://customer-data-parq2/'
+    );
+    insert into customer_parq2 select * from customer_parq;
+    ```
+
 ## Jaffle shop project
 
 1. Change to the python code directory
@@ -327,214 +589,6 @@ Access the servers here
     * Presto: http://192.168.33.10:8080
     * Superset: http://192.168.33.10:8088
     * Hue: http://192.168.33.10:8888
-
-## Setup Presto, Minio and Hive
-
-1. Clone the project
-
-```
-git clone https://github.com/starburstdata/presto-minio
-```
-
-2. Change to the project directory
-
-```
-cd /vagrant/presto-minio
-```
-
-3. Add to file /vagrant/presto-minio/presto/minio.properties
-
-```
-hive.metastore-cache-ttl=0s
-hive.metastore-refresh-interval = 5s
-hive.allow-drop-table=true
-hive.allow-rename-table=true
-```
-
-3. Start Presto and Minio
-
-```
-docker-compose up -d
-```
-
-4. View Minio at http://192.168.33.10:9000/
-
-Use the access key and secret access key from the docker-compose.yml file
-There are two folders called customer-data-text and customer-data-json
-
-Create a new folder called customer-data-orc
-
-5. View the Presto WebUI at http://192.168.33.10:8080/
-
-6. Connect to the Hadoop master
-
-    ```
-    docker exec -it hadoop-master /bin/bash
-    ```
-
-7. Start hive
-
-    ```
-    su - hdfs
-    hive
-    ```
-
-8. Create the customer_text table
-
-    ```
-    use default;
-    create external table customer_text(id string, fname string, lname string)
-        ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
-        STORED AS TEXTFILE location 's3a://customer-data-text/';
-    select * from customer_text;
-    ```
-
-9. Exit the hive cli
-
-    ```
-    exit;
-    ```
-
-10. Exit the Docker container
-
-    ```
-    exit
-    ```
-
-10. Connect to Presto
-
-    ```
-    docker exec -it presto presto-cli
-    ```
-
-11. Query data from Presto
-
-    ```
-    use minio.default;
-    show tables;
-    select * from customer_text;
-    ```
-
-12. Exit from the Presto cli
-
-    ```
-    quit
-    ```
-
-13. Follow instructions at https://github.com/starburstdata/presto-minio
-
-14. Try intake: https://intake.readthedocs.io/en/latest/index.html
-
-### Use beeline to run queries on Hive
-
-1. Connect to the Hadoop master
-
-    ```
-    docker exec -it hadoop-master /bin/bash
-    ```
-
-2. Start beeline
-
-    ```
-    su - hdfs
-    # !connect jdbc:hive2://localhost:10000 root root
-    # hive password in /etc/hive/conf/hive-site.xml
-    # connect to database default with user root and password root
-    beeline -u jdbc:hive2://localhost:10000/default root root
-    ```
-
-2. List databases
-
-    ```
-    show databases;
-    ```
-
-3. Use database
-
-    ```
-    use default;
-    ```
-
-4. Create parquet tables
-
-    ```
-    create external table customer_parq(id string, fname string, lname string)
-        STORED AS PARQUET location 's3a://customer-data-parq/customer.parq';
-    insert into customer_parq select * from customer_text;
-    ```
-
-4. List tables
-
-    ```
-    show tables;
-    ```
-
-5. Exit beeline cli
-
-    ```
-    !exit
-    ```
-
-### Setup minio client - mc 
-
-1. Setup minio clound storage
-
-    ```
-    mc config host add minio http://localhost:9000 V42FCGRVMK24JJ8DHUYG bKhWxVF3kQoLY9kFmt91l+tDrEoZjqnWXzY9Eza
-    ```
-
-2. List buckets
-
-    ```
-    mc ls minio
-    ```
-
-3. List files in buckets
-
-
-## Python S3
-
-### Create the environment manually
-
-1. Create a Pipfile
-
-```
-pipenv --python $(which python3)
-```
-
-2. Setup the libraries manually
-
-```
-pipenv install ipython
-pipenv install fsspec              # needed for dask file-system operations
-pipenv install dask                # core dask only
-pipenv install "dask[array]"       # Install requirements for dask array
-pipenv install "dask[bag]"         # Install requirements for dask bag
-pipenv install "dask[dataframe]"   # Install requirements for dask dataframe
-pipenv install "dask[delayed]"     # Install requirements for dask delayed
-pipenv install "dask[distributed]" # Install requirements for distributed dask
-pipenv install awscli
-pipenv install s3fs
-```
-
-# pipenv install toolz  # for dask
-# pipenv install graphviz  # for dask
-# pipenv install pyarrow
-
-3. Setup AWS configuration
-
-```
-export AWS_ACCESS_KEY_ID=V42FCGRVMK24JJ8DHUYG
-export AWS_SECRET_ACCESS_KEY=bKhWxVF3kQoLY9kFmt91l+tDrEoZjqnWXzY9Eza
-aws configure set default.s3.signature_version s3v4
-aws --endpoint-url http://192.168.33.10:9000 s3 ls
-```
-
-4. Use Python to access the buckets
-
-```
-python3 python/s3-process.py
-```
 
 ## DBT
 
