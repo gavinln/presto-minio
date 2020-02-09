@@ -10,6 +10,10 @@ dask = {extras = ["distributed"],version = "*"}
 awscli = "*"
 s3fs = "*"
 ipython = "*"
+numpy = "*"
+pandas = "*"
+pyarrow = "*"
+jinja2 = "*"
 
 [requires]
 python_version = "3.6"

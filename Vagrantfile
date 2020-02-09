@@ -57,8 +57,8 @@ Vagrant.configure("2") do |config|
     end
 
     machine.vm.hostname = "presto-minio"
-    machine.vm.network "private_network", ip: "192.168.33.10"
-    # machine.vm.network "public_network"
+    # machine.vm.network "private_network", ip: "192.168.33.10"
+    machine.vm.network "public_network"
 
     machine.vm.provision "shell" do |sh|
       sh.path = "ansible/ansible_install.sh"
