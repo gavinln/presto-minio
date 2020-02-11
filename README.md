@@ -304,7 +304,16 @@ There are two folders called customer-data-text and customer-data-json
     load data inpath 's3a://customer-data-text/customer.csv' overwrite into table customer_text;
     ```
 
-6. Exit beeline cli
+6. Create a table on hdfs
+
+
+    ```
+    create table customer_text2 (id string, fname string, lname string)
+    row format delimited fields terminated by '\t'
+    lines terminated by '\n' stored as textfile;
+    ```
+
+7. Exit beeline cli
 
     ```
     !exit
@@ -419,6 +428,40 @@ python3 python/s3-process.py
     );
     insert into customer_parq2 select * from customer_parq;
     ```
+
+## Dremio
+
+1. Expose the 9083 port on the hadoop Docker container by adding this to
+   docker-compose.yml
+
+```
+dremio:
+  hostname: dremio
+  image: 'dremio/dremio-oss:latest'
+  container_name: dremio
+  ports:
+    - '9047:9047'
+```
+
+2. Add to ./hadoop/core-site.xml
+
+```
+<property>
+    <name>hadoop.proxyuser.dremio.hosts</name>
+    <value>*</value>
+</property>
+<property>
+    <name>hadoop.proxyuser.dremio.groups</name>
+    <value>*</value>
+</property>
+<property>
+    <name>hadoop.proxyuser.dremio.users</name>
+    <value>*</value>
+</property>
+```
+
+3. When adding a data source in the dremio interface use `hadoop-master` as the
+   Hive metastore host
 
 ## Jaffle shop project
 
