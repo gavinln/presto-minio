@@ -704,6 +704,10 @@ Command line client for multiple databases: [usql][1160]
 
 [1170]: https://medium.com/the-telegraph-engineering/dbt-a-new-way-to-handle-data-transformation-at-the-telegraph-868ce3964eb4
 
+[Integration architecture][1180]
+
+[1180]: https://github.com/gschmutz/integration-architecture-workshop
+
 ### Miscellaneous
 
 Other tools
