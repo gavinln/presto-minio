@@ -311,6 +311,7 @@ There are two folders called customer-data-text and customer-data-json
     create table customer_text2 (id string, fname string, lname string)
     row format delimited fields terminated by '\t'
     lines terminated by '\n' stored as textfile;
+    insert into customer_text2 select * from customer_text
     ```
 
 7. Exit beeline cli
