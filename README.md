@@ -182,34 +182,40 @@ hive.metastore-refresh-interval = 5s
 hive.allow-drop-table=true
 hive.allow-rename-table=true
 ```
+4. Add the following to the docker-compose.yml file to expose the hive port
 
-3. Start Presto and Minio
+```
+ports:
+  - '9047:9047'
+```
+
+5. Start Presto and Minio
 
 ```
 docker-compose up -d
 ```
 
-4. View Minio at http://192.168.33.10:9000/
+6. View Minio at http://192.168.33.10:9000/
 
 Use the access key and secret access key from the docker-compose.yml file
 There are two folders called customer-data-text and customer-data-json
 
-5. View the Presto WebUI at http://192.168.33.10:8080/
+7. View the Presto WebUI at http://192.168.33.10:8080/
 
-6. Connect to the Hadoop master
+8. Connect to the Hadoop master
 
     ```
     docker exec -it hadoop-master /bin/bash
     ```
 
-7. Start hive
+9. Start hive
 
     ```
     su - hdfs
     hive
     ```
 
-8. Create the customer_text table
+10. Create the customer_text table
 
     ```
     use default;
@@ -260,17 +266,17 @@ There are two folders called customer-data-text and customer-data-json
 1. Connect to the Hadoop master
 
     ```
-    docker exec -it hadoop-master /bin/bash
+    docker exec -it hadoop-master beeline
     ```
 
 2. Start beeline
 
     ```
-    su - hdfs
-    # !connect jdbc:hive2://localhost:10000 root root
+    !connect jdbc:hive2://localhost:10000 root root
+    # su - hdfs
     # hive password in /etc/hive/conf/hive-site.xml
     # connect to database default with user root and password root
-    beeline -u jdbc:hive2://localhost:10000/default root root
+    # beeline -u jdbc:hive2://localhost:10000/default root root
     ```
 
 2. List databases
@@ -767,3 +773,9 @@ insert into ip_data2 values('name1', 'email@co.com', 'city1', 'state1', localtim
 CREATE TABLE ip_data4 ( name varchar, email varchar, city varchar, state varchar, date_time TIMESTAMP, randomdata BIGINT, ipv4 VARBINARY, ipv6 VARBINARY );
 insert into ip_data4 values('name1', 'email@co.com', 'city1', 'state1', localtimestamp, 2344, from_hex('eeeeaaaa'), from_hex('20010db8aaaabbbbccccddddeeeeaaaa'));
 ```
+
+## Miscellaneous
+
+[Dremio and Minio may not work][1000]
+
+[1000]: https://community.dremio.com/t/connect-to-minio-s3-storage/906/8
