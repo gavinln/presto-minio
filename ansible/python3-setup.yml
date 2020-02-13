@@ -54,8 +54,13 @@
 - name: install postgres client
   pip: name=pgcli state=present
 
+- name: install aws cli
+  pip: name=awscli state=present
+
+
 - name: install data build tool
   pip: name=dbt state=present
 
 - name: install data build tool - presto
   pip: name="dbt-presto" state=present
+

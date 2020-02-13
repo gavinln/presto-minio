@@ -33,7 +33,7 @@ def create_hive_parq_table():
     cursor = hive.connect('localhost').cursor()
     sql = '''
     create external table customer_parq(id string, fname string, lname string)
-        STORED AS PARQUET location 's3a://customer-data-parq/customer.parq'
+        STORED AS PARQUET location 's3a://customer-data-parq/'
     '''
     cursor.execute(sql)
     sql = 'insert into customer_parq select * from customer_text'

@@ -779,3 +779,7 @@ insert into ip_data4 values('name1', 'email@co.com', 'city1', 'state1', localtim
 [Dremio and Minio may not work][1000]
 
 [1000]: https://community.dremio.com/t/connect-to-minio-s3-storage/906/8
+
+[Clickhouse Python][1010]
+
+[1010]: https://github.com/Altinity/clickhouse-python-examples

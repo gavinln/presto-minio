@@ -6,4 +6,7 @@ Create dataframe
 	Save dataframe to hdfs file
 	Save dataframe to S3 file
 
-
+[_] Document changes
+    docker-compose.yml
+    hadoop/core-site.xml
+    presto/minio.properties
