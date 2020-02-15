@@ -783,3 +783,7 @@ insert into ip_data4 values('name1', 'email@co.com', 'city1', 'state1', localtim
 [Clickhouse Python][1010]
 
 [1010]: https://github.com/Altinity/clickhouse-python-examples
+
+[Airline data][1020]
+
+[1020]: https://github.com/vaexio/vaex-examples
