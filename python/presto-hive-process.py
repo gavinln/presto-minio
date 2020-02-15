@@ -29,6 +29,7 @@ def create_hive_text_table():
     cursor.close()
     return result
 
+
 def create_hive_parq_table():
     cursor = hive.connect('localhost').cursor()
     sql = '''
