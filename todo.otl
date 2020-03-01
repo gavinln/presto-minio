@@ -10,3 +10,12 @@ Create dataframe
     docker-compose.yml
     hadoop/core-site.xml
     presto/minio.properties
+
+[_] Presto and Parquet
+	[_] Copy airline parquet files to Minio
+	[_] Create Presto table based on Minio files
+	[_] Query table using Presto
+	[_] Create new table from existing table subset as a Parquet file
+	[_] Read subset Parquet
+	[_] Setup Netflix S3 reader
+	[_] Read subset Parquet using Netflix S3 reader

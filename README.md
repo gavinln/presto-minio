@@ -195,27 +195,29 @@ ports:
 docker-compose up -d
 ```
 
-6. View Minio at http://192.168.33.10:9000/
+6. View Minio at http://gavinsvr:9000/
 
 Use the access key and secret access key from the docker-compose.yml file
 There are two folders called customer-data-text and customer-data-json
 
-7. View the Presto WebUI at http://192.168.33.10:8080/
+7. View the Presto WebUI at http://gavinsvr:8080/
 
-8. Connect to the Hadoop master
+### Create a table using Hive
+
+1. Connect to the Hadoop master
 
     ```
     docker exec -it hadoop-master /bin/bash
     ```
 
-9. Start hive
+2. Start hive
 
     ```
     su - hdfs
     hive
     ```
 
-10. Create the customer_text table
+3. Create the customer_text table
 
     ```
     use default;
@@ -225,25 +227,26 @@ There are two folders called customer-data-text and customer-data-json
     select * from customer_text;
     ```
 
-9. Exit the hive cli
+4. Exit the hive cli
 
     ```
     exit;
     ```
 
-10. Exit the Docker container
+5. Exit the Docker container
 
     ```
     exit
     ```
+### Query the Hive table using Presto
 
-10. Connect to Presto
+1. Connect to Presto
 
     ```
     docker exec -it presto presto-cli
     ```
 
-11. Query data from Presto
+2. Query data from Presto
 
     ```
     use minio.default;
@@ -251,98 +254,222 @@ There are two folders called customer-data-text and customer-data-json
     select * from customer_text;
     ```
 
-12. Exit from the Presto cli
+3. Exit from the Presto cli
 
     ```
     quit
     ```
 
-13. Follow instructions at https://github.com/starburstdata/presto-minio
+4. Follow instructions at https://github.com/starburstdata/presto-minio
 
-14. Try intake: https://intake.readthedocs.io/en/latest/index.html
+5. Try intake: https://intake.readthedocs.io/en/latest/index.html
 
 ### Use beeline to run queries on Hive
 
 1. Connect to the Hadoop master
 
-    ```
-    docker exec -it hadoop-master beeline
-    ```
+```
+docker exec -it hadoop-master beeline
+```
 
 2. Start beeline
 
-    ```
-    !connect jdbc:hive2://localhost:10000 root root
-    # su - hdfs
-    # hive password in /etc/hive/conf/hive-site.xml
-    # connect to database default with user root and password root
-    # beeline -u jdbc:hive2://localhost:10000/default root root
-    ```
+```
+!connect jdbc:hive2://localhost:10000 root root
+# su - hdfs
+# hive password in /etc/hive/conf/hive-site.xml
+# connect to database default with user root and password root
+# beeline -u jdbc:hive2://localhost:10000/default root root
+```
 
 2. List databases
 
-    ```
-    show databases;
-    ```
+```
+show databases;
+```
 
 3. Use database
 
-    ```
-    use default;
-    ```
+```
+use default;
+```
 
 4. Create parquet tables
 
-    ```
-    create external table customer_parq(id string, fname string, lname string)
-        STORED AS PARQUET location 's3a://customer-data-parq/customer.parq';
-    insert into customer_parq select * from customer_text;
-    ```
+```
+create external table customer_parq(id string, fname string, lname string)
+    STORED AS PARQUET location 's3a://customer-data-parq/customer.parq';
+insert into customer_parq select * from customer_text;
+```
 
-4. List tables
+5. List tables
 
-    ```
-    show tables;
-    ```
-5. Add text to table
+```
+show tables;
+```
 
-    ```
-    load data inpath 's3a://customer-data-text/customer.csv' overwrite into table customer_text;
-    ```
+6. Add text to table
 
-6. Create a table on hdfs
+```
+load data inpath 's3a://customer-data-text/customer.csv' overwrite into table customer_text;
+```
+
+7. Create a table on hdfs
 
 
-    ```
-    create table customer_text2 (id string, fname string, lname string)
-    row format delimited fields terminated by '\t'
-    lines terminated by '\n' stored as textfile;
-    insert into customer_text2 select * from customer_text
-    ```
+```
+create table customer_text2 (id string, fname string, lname string)
+row format delimited fields terminated by '\t'
+lines terminated by '\n' stored as textfile;
+insert into customer_text2 select * from customer_text
+```
 
-7. Exit beeline cli
+8. Exit beeline cli
 
-    ```
-    !exit
-    ```
+```
+!exit
+```
 
 ### Setup minio client - mc 
 
 1. Setup minio clound storage
 
-    ```
-    mc config host add minio http://localhost:9000 V42FCGRVMK24JJ8DHUYG bKhWxVF3kQoLY9kFmt91l+tDrEoZjqnWXzY9Eza
-    ```
+```
+mc config host add minio http://localhost:9000 V42FCGRVMK24JJ8DHUYG bKhWxVF3kQoLY9kFmt91l+tDrEoZjqnWXzY9Eza
+```
 
 2. List buckets
 
-    ```
-    mc ls minio
-    ```
+```
+mc ls minio
+```
 
 3. List files in buckets
 
+```
+mc ls minio/airline-parq
+```
 
+4. Make bucket to store new table
+mc mb minio/airline-parq2
+
+4. Download the Presto cli
+curl -o ~/presto.jar https://repo1.maven.org/maven2/com/facebook/presto/presto-cli/0.231.1/presto-cli-0.231.1-executable.jar
+java -jar ~/presto.jar --server localhost:8080 --catalog minio --schema default
+
+5. Show tables;
+show tables;
+
+6. Create a parquet table using Presto
+
+```
+create table airline_parq (
+    Year              SMALLINT,
+    Month             TINYINT,
+    DayofMonth        SMALLINT,
+    DayOfWeek         TINYINT,
+    DepTime           SMALLINT,
+    CRSDepTime        SMALLINT,
+    ArrTime           SMALLINT,
+    CRSArrTime        SMALLINT,
+    UniqueCarrier     VARCHAR,
+    FlightNum         INTEGER,
+    TailNum           VARCHAR,
+    ActualElapsedTime INTEGER,
+    CRSElapsedTime    INTEGER,
+    AirTime           INTEGER,
+    ArrDelay          INTEGER,
+    DepDelay          INTEGER,
+    Origin            VARCHAR,
+    Dest              VARCHAR,
+    Distance          INTEGER,
+    TaxiIn            INTEGER,
+    TaxiOut           INTEGER,
+    Cancelled         TINYINT,
+    CancellationCode  VARCHAR,
+    Diverted          TINYINT,
+    CarrierDelay      INTEGER,
+    WeatherDelay      INTEGER,
+    NASDelay          INTEGER,
+    SecurityDelay     INTEGER,
+    LateAircraftDelay INTEGER
+)
+with (
+    format = 'PARQUET',
+    external_location = 's3a://airline-parq/'
+);
+```
+
+7. Query data
+
+```
+select Year, Month, DayofMonth from airline_parq limit 5;
+```
+
+8. Create new parquet file with subset
+
+```
+create table airline_parq2 (
+    Year              SMALLINT,
+    Month             TINYINT,
+    DayofMonth        SMALLINT,
+    DayOfWeek         TINYINT,
+    DepTime           SMALLINT,
+    CRSDepTime        SMALLINT,
+    ArrTime           SMALLINT,
+    CRSArrTime        SMALLINT,
+    UniqueCarrier     VARCHAR,
+    FlightNum         INTEGER,
+    TailNum           VARCHAR,
+    ActualElapsedTime INTEGER,
+    CRSElapsedTime    INTEGER,
+    AirTime           INTEGER,
+    ArrDelay          INTEGER,
+    DepDelay          INTEGER,
+    Origin            VARCHAR,
+    Dest              VARCHAR,
+    Distance          INTEGER,
+    TaxiIn            INTEGER,
+    TaxiOut           INTEGER,
+    Cancelled         TINYINT,
+    CancellationCode  VARCHAR,
+    Diverted          TINYINT
+)
+with (
+    format = 'PARQUET'
+);
+```
+
+```
+insert into airline_parq2
+select 
+    Year,
+    Month,
+    DayofMonth,
+    DayOfWeek,
+    DepTime,
+    CRSDepTime,
+    ArrTime,
+    CRSArrTime,
+    UniqueCarrier,
+    FlightNum,
+    TailNum,
+    ActualElapsedTime,
+    CRSElapsedTime,
+    AirTime,
+    ArrDelay,
+    DepDelay,
+    Origin,
+    Dest,
+    Distance,
+    TaxiIn,
+    TaxiOut,
+    Cancelled,
+    CancellationCode,
+    Diverted
+from airline_parq
+limit 1000;
+'''
 
 ### Create the environment manually
 
@@ -787,3 +914,13 @@ insert into ip_data4 values('name1', 'email@co.com', 'city1', 'state1', localtim
 [Airline data][1020]
 
 [1020]: https://github.com/vaexio/vaex-examples
+
+## Presto REST api
+
+http 10.0.0.2:8080/v1/query | jq ".[] | {self}"
+
+http http://10.0.0.2:8080/v1/query/20200301_194512_00001_tfehk | jid
+
+http http://10.0.0.2:8080/v1/query/20200301_194512_00001_tfehk | jq ".inputs[].table"
+
+http http://10.0.0.2:8080/v1/query/20200301_194512_00001_tfehk | jq ".inputs[].columns[].name"
