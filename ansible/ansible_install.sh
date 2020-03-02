@@ -4,7 +4,7 @@
 # Detect package management system.
 YUM=$(which yum 2>/dev/null)
 APT_GET=$(which apt-get 2>/dev/null)
-ANSIBLE_VERSION=2.7.9
+ANSIBLE_VERSION=2.9.5
 
 # Install Ansible and its dependencies if it's not installed already.
 if ! command -v ansible >/dev/null; then

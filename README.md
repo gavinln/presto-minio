@@ -9,8 +9,8 @@
 
 This project provides a [Ubuntu (18.04)][10] [Vagrant][20] Virtual Machine (VM)
 with multiple big data projects. It uses Docker containers to setup
-[Hadoop][30], [Hive][40], [Presto][50], [Minio][60], [Superset][70],
-[Hue][80]. It also use Database tool (DBT) to transform data using a ELT process.
+[Hadoop][30], [Hive][40], [Presto][50], [Minio][60]. It also use Database tool
+(DBT) to transform data using a ELT process.
 
 [10]: http://releases.ubuntu.com/18.04/
 [20]: http://www.vagrantup.com/
@@ -18,8 +18,6 @@ with multiple big data projects. It uses Docker containers to setup
 [40]: https://github.com/apache/hive
 [50]: https://prestodb.github.io/
 [60]: https://min.io/
-[70]: https://github.com/apache/incubator-superset
-[80]: https://github.com/cloudera/hue
 
 There are [Ansible][90] scripts that automatically install the software when
 the VM is started.
@@ -33,37 +31,37 @@ machine disk. Install the following plugin to resize the disk.
 
 1. List the vagrant plugins
 
-    ```
-    vagrant plugin list
-    ```
+```
+vagrant plugin list
+```
 
 2. Install the Vagrant [disksize][100] plugin
 
-    ```
-    vagrant plugin install vagrant-disksize
-    ```
+```
+vagrant plugin install vagrant-disksize
+```
 
 [100]: https://github.com/sprotheroe/vagrant-disksize
 
 
 3. Login to the virtual machine
 
-    ```
-    vagrant ssh
-    ```
+```
+vagrant ssh
+```
 
 4. Change to the root directory
 
-    ```
-    cd /vagrant
-    ```
+```
+cd /vagrant
+```
 
 5. Create a directory of Minio object storage (like S3)
 
-    ```
-    sudo mkdir /data
-    sudo chown vagrant:vagrant /data
-    ```
+```
+sudo mkdir /data
+sudo chown vagrant:vagrant /data
+```
 
 ## Run Postgres
 
@@ -206,59 +204,60 @@ There are two folders called customer-data-text and customer-data-json
 
 1. Connect to the Hadoop master
 
-    ```
-    docker exec -it hadoop-master /bin/bash
-    ```
+```
+docker exec -it hadoop-master /bin/bash
+```
 
 2. Start hive
 
-    ```
-    su - hdfs
-    hive
-    ```
+```
+su - hdfs
+hive
+```
 
 3. Create the customer_text table
 
-    ```
-    use default;
-    create external table customer_text(id string, fname string, lname string)
-        ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
-        STORED as TEXTFILE location 's3a://customer-data-text/';
-    select * from customer_text;
-    ```
+```
+use default;
+create external table customer_text(id string, fname string, lname string)
+    ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+    STORED as TEXTFILE location 's3a://customer-data-text/';
+select * from customer_text;
+```
 
 4. Exit the hive cli
 
-    ```
-    exit;
-    ```
+```
+exit;
+```
 
 5. Exit the Docker container
 
-    ```
-    exit
-    ```
+```
+exit
+```
+
 ### Query the Hive table using Presto
 
 1. Connect to Presto
 
-    ```
-    docker exec -it presto presto-cli
-    ```
+```
+docker exec -it presto presto-cli
+```
 
 2. Query data from Presto
 
-    ```
-    use minio.default;
-    show tables;
-    select * from customer_text;
-    ```
+```
+use minio.default;
+show tables;
+select * from customer_text;
+```
 
 3. Exit from the Presto cli
 
-    ```
-    quit
-    ```
+```
+quit
+```
 
 4. Follow instructions at https://github.com/starburstdata/presto-minio
 
@@ -316,7 +315,6 @@ load data inpath 's3a://customer-data-text/customer.csv' overwrite into table cu
 
 7. Create a table on hdfs
 
-
 ```
 create table customer_text2 (id string, fname string, lname string)
 row format delimited fields terminated by '\t'
@@ -351,14 +349,23 @@ mc ls minio/airline-parq
 ```
 
 4. Make bucket to store new table
+
+```
 mc mb minio/airline-parq2
+```
 
 4. Download the Presto cli
+
+```
 curl -o ~/presto.jar https://repo1.maven.org/maven2/com/facebook/presto/presto-cli/0.231.1/presto-cli-0.231.1-executable.jar
 java -jar ~/presto.jar --server localhost:8080 --catalog minio --schema default
+```
 
 5. Show tables;
+
+```
 show tables;
+```
 
 6. Create a parquet table using Presto
 
@@ -438,9 +445,7 @@ create table airline_parq2 (
 with (
     format = 'PARQUET'
 );
-```
 
-```
 insert into airline_parq2
 select 
     Year,
@@ -469,7 +474,7 @@ select
     Diverted
 from airline_parq
 limit 1000;
-'''
+```
 
 ### Create the environment manually
 
@@ -517,51 +522,51 @@ python3 python/s3-process.py
 
 1. Start the Presto cli
 
-    ```
-    mc mb minio/customer-data-parq2
-    docker exec -it presto presto-cli
-    ```
+```
+mc mb minio/customer-data-parq2
+docker exec -it presto presto-cli
+```
 
 2. Show catalogs
 
-    ```
-    show catalogs;
-    ```
+```
+show catalogs;
+```
 
 3. Show schemas
 
-    ```
-    show schemas from minio;
-    ```
+```
+show schemas from minio;
+```
 
 4. Use a schema
 
-    ```
-    use minio.default;
-    ```
+```
+use minio.default;
+```
 
 5. Show catalogs
 
-    ```
-    show schemas;
-    ```
+```
+show schemas;
+```
 
 6. Show tables;
 
-    ```
-    show tables;
-    ```
+```
+show tables;
+```
 
 7. Create a parquet table using Presto
 
-    ```
-    create table customer_parq2(id varchar, fname varchar, lname varchar)
-    with (
-        format = 'PARQUET',
-        external_location = 's3a://customer-data-parq2/'
-    );
-    insert into customer_parq2 select * from customer_parq;
-    ```
+```
+create table customer_parq2(id varchar, fname varchar, lname varchar)
+with (
+    format = 'PARQUET',
+    external_location = 's3a://customer-data-parq2/'
+);
+insert into customer_parq2 select * from customer_parq;
+```
 
 ## Dremio
 
@@ -632,170 +637,35 @@ jaffle_shop:
 
 https://github.com/fishtown-analytics/jaffle_shop
 
-## Run superset, hue, presto, hive using Docker
-
-1. Clone the project with the Docker compose file
-
-```
-git clone https://github.com/johannestang/bigdata_stack
-```
-
-2. Change to the project to create Docker containers
-
-```
-cd bigdata_stack/
-```
-
-3. Setup the environment
-
-```
-cp sample.env .env
-set -o allexport
-source .env
-set +o allexport
-```
-
-4. Create the containers
-
-```
-docker-compose up -d
-```
-
-5. Set username/password for Superset
-
-```
-./scripts/init-superset.sh
-```
-
-6. Initialize Hue
-
-```
-./scripts/init-hue.sh
-```
-
-7. To take down the entire software stack
-
-```
-docker-compose down
-```
-
-### Setup the software
-
-1. Start the Beeline command line interface
-
-```
-./scripts/beeline.sh
-```
-
-2. Create a table in Hive
-
-```
-CREATE TABLE pokes (foo INT, bar STRING);
-LOAD DATA LOCAL INPATH '/opt/hive/examples/files/kv1.txt' OVERWRITE INTO TABLE pokes;
-SELECT * FROM pokes LIMIT 1;
-!quit
-```
-
-3. View the dataset in the HDFS volume
-
-```
-http://192.168.33.10:50070/explorer.html#/user/hive/warehouse
-```
-
-4. Start the Presto CLI
-
-```
-./scripts/presto-cli.sh
-```
-
-5. Query the table just created
-
-```
-SELECT * FROM pokes LIMIT 1;
-```
-
-6. Quit the Presto CLI
-
-```
-quit
-```
-
-7. Setup data in S3
-
-```
-sudo mkdir -p /data/minio/data/datasets/iris
-cd /data/minio/data/datasets/iris
-sudo wget https://raw.githubusercontent.com/uiuc-cse/data-fa14/gh-pages/data/iris.csv
-cd -
-```
-
-8. View the data in the object stores (similar to S3) at http://192.168.33.10:9000
-
-9. Start Beeline to create a table based on data in S3
-
-```
-CREATE EXTERNAL TABLE iris (sepal_length DECIMAL, sepal_width DECIMAL, 
-petal_length DECIMAL, petal_width DECIMAL, species STRING) 
-ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
-LOCATION 's3a://datasets/iris/'
-TBLPROPERTIES ("skip.header.line.count"="1");
-!quit
-```
-
-10. Start the Presto CLI
-
-```
-./scripts/presto-cli.sh
-```
-
-11. Query data from the iris table on S3 using Preso
-
-```
-SELECT * FROM iris LIMIT 1;
-quit
-```
-
-12. Follow the instructions [here][200]
-
-[200]: https://johs.me/posts/big-data-stack-running-sql-queries/
-
-Access the servers here
-
-    * Hadoop namenode: http://192.168.33.10:50070
-    * Minio: http://192.168.33.10:9000
-    * Presto: http://192.168.33.10:8080
-    * Superset: http://192.168.33.10:8088
-    * Hue: http://192.168.33.10:8888
-
 ## DBT
 
 1. Change to the dbt project root
 
-    ```
-    cd /vagrant/python
-    ```
+```
+cd /vagrant/python
+```
 
 2. Create a project
 
-    ```
-    dbt init presto-customer
-    ```
+```
+dbt init presto-customer
+```
 
 2. Create a ~/.dbt/profiles.yml file
 
-    ```
-    presto-customer:
-      target: dev
-      outputs:
-        dev:
-          type: presto
-          method: none
-          database: minio
-          host: localhost
-          port: 8080
-          schema: default
-          threads: 1
-    ```
+```
+presto-customer:
+  target: dev
+  outputs:
+    dev:
+      type: presto
+      method: none
+      database: minio
+      host: localhost
+      port: 8080
+      schema: default
+      threads: 1
+```
 
 ## Links
 
@@ -803,11 +673,7 @@ Access the servers here
 
 [1000]: https://prestodb.github.io/docs/current/release.html
 
-2. [Superset releases][1010]
-
-[1010]: https://github.com/apache/incubator-superset/releases
-
-3. [Minio versions][1020]
+2. [Minio versions][1020]
 
 [1020]: https://github.com/minio/minio/releases
 
@@ -829,9 +695,6 @@ Access the servers here
 
 [1150]: https://blog.minio.io/building-an-on-premise-ml-ecosystem-with-minio-powered-by-presto-weka-r-and-s3select-feature-fefbbaa87054
 
-Command line client for multiple databases: [usql][1160]
-
-[1160]: https://github.com/xo/usql
 
 [Using DBT][1170]
 
@@ -842,22 +705,6 @@ Command line client for multiple databases: [usql][1160]
 [1180]: https://github.com/gschmutz/integration-architecture-workshop
 
 ### Miscellaneous
-
-Other tools
-
-#### usql go language CLI tool
-
-Use usql to connect to Presto
-
-```
-usql presto://192.168.33.10:8080/minio/default
-```
-
-Execute query from the command line and get the results
-
-```
-usql presto://192.168.33.10:8080/minio/default -c "select * from customer_orc;"
-```
 
 #### Java CLI and GUI tool to connect to databases via JDBC
 
