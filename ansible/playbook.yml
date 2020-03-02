@@ -12,8 +12,8 @@
       become: yes
 
   roles:
-    - geerlingguy.ntp
-    - role: geerlingguy.docker
+      # - geerlingguy.ntp
+      - role: geerlingguy.docker
 
   tasks:
     - import_tasks: init-setup.yml

@@ -2,6 +2,7 @@
 
 This is an updated version of the presto-minio project from 
 https://github.com/starburstdata/presto-minio
+library.
 
 Download the following files from here
 
@@ -57,7 +58,9 @@ presto:default> select * from customer_text;
 (2 rows)
 ```
 
-Next, let's create a new table via Presto and copy the CSV data into ORC format. Before you do that, make a new bucket in Minio named `customer-data-orc`.
+Next, let's create a new table via Presto and copy the CSV data into ORC
+format. Before you do that, make a new bucket in Minio named
+`customer-data-orc`.
 
 ```
 presto:default> create table customer_orc(id varchar,fname varchar,lname varchar) with (format = 'ORC', external_location = 's3a://customer-data-orc/');

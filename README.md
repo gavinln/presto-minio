@@ -667,6 +667,11 @@ presto-customer:
       threads: 1
 ```
 
+## Presto admin
+
+Presto-admin is a Python tool to install, configure and manage Presto
+installations
+
 ## Links
 
 1. [Presto releases][1000]
