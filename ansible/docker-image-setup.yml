@@ -1,4 +1,8 @@
 ---
-- name: pull redis docker
+- name: pull redis docker image
   docker_image:
     name: redis
+
+- name: pull mongo docker image
+  docker_image:
+      name: mongo:3.6-xenial

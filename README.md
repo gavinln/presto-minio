@@ -486,18 +486,24 @@ pipenv --python $(which python3)
 
 2. Setup the libraries manually
 
-```bash
-pipenv install ipython
-pipenv install fsspec              # needed for dask file-system operations
-pipenv install dask                # core dask only
-pipenv install "dask[array]"       # Install requirements for dask array
-pipenv install "dask[bag]"         # Install requirements for dask bag
-pipenv install "dask[dataframe]"   # Install requirements for dask dataframe
-pipenv install "dask[delayed]"     # Install requirements for dask delayed
-pipenv install "dask[distributed]" # Install requirements for distributed dask
-pipenv install awscli
-pipenv install s3fs
+```
+pipenv install ipython --skip-lock
+pipenv install requests --skip-lock
+pipenv install pandas --skip-lock
+pipenv install mypy --skip-lock
+pipenv install flake8 --skip-lock
+pipenv install yapf --skip-lock
+pipenv lock
 
+# pipenv install fsspec              # needed for dask file-system operations
+# pipenv install dask                # core dask only
+# pipenv install "dask[array]"       # Install requirements for dask array
+# pipenv install "dask[bag]"         # Install requirements for dask bag
+# pipenv install "dask[dataframe]"   # Install requirements for dask dataframe
+# pipenv install "dask[delayed]"     # Install requirements for dask delayed
+# pipenv install "dask[distributed]" # Install requirements for distributed dask
+# pipenv install awscli
+# pipenv install s3fs
 # pipenv install toolz  # for dask
 # pipenv install graphviz  # for dask
 # pipenv install pyarrow
@@ -768,6 +774,12 @@ insert into ip_data4 values('name1', 'email@co.com', 'city1', 'state1', localtim
 [1020]: https://github.com/vaexio/vaex-examples
 
 ## Presto REST api
+
+### Install Python environment
+
+1. Setup Python
+pipenv --python $(whicn python3)
+
 
 http 10.0.0.2:8080/v1/query | jq ".[] | {self}"
 

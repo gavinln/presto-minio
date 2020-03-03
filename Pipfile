@@ -6,18 +6,12 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-dask = {extras = ["distributed"],version = "*"}
-awscli = "*"
-s3fs = "*"
 ipython = "*"
-numpy = "*"
+requests = "*"
 pandas = "*"
-pyarrow = "*"
-jinja2 = "*"
-humanize = "*"
+mypy = "*"
+flake8 = "*"
+yapf = "*"
 
 [requires]
-python_version = "3.6"
-
-[pipenv]
-allow_prereleases = true
+python_version = "3.7"
