@@ -7,3 +7,4 @@
 ansible/playbook.retry
 ansible/roles/
 presto-minio-update/minio/data/.minio.sys/
+.mypy_cache/

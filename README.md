@@ -773,6 +773,41 @@ insert into ip_data4 values('name1', 'email@co.com', 'city1', 'state1', localtim
 
 [1020]: https://github.com/vaexio/vaex-examples
 
+## Mongo DB
+
+### Start MongoDB
+
+1. Change to the mongodb directory
+cd /vagrant/mongodb
+
+2. Start Mongodb
+docker-compose up -d
+
+3. Connect to Mongo
+docker-compose exec mongo mongo -u root -p
+
+4. Create a database
+use mydb
+
+5. List databases
+show dbs
+
+6. Insert data
+db.movie.insert({"name":"jaws"})
+
+7. List collections
+show collections
+
+8. Query document
+db.movie.find()
+
+9. Delete collection
+db.movie.drop()
+
+10. Drop database
+db.dropDatabase()
+
+
 ## Presto REST api
 
 ### Install Python environment
