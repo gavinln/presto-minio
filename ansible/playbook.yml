@@ -12,7 +12,7 @@
       become: yes
 
   roles:
-      # - geerlingguy.ntp
+      - geerlingguy.ntp
       - role: geerlingguy.docker
 
   tasks:
