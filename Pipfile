@@ -12,6 +12,7 @@ pandas = "*"
 mypy = "*"
 flake8 = "*"
 yapf = "*"
+fastapi = "*"
 
 [requires]
 python_version = "3.7"
