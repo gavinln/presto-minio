@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "d422f9a32235b50ff63e419c22b22c1c021756fb68da9eb0a7893ef54112c013"
+            "sha256": "285f01cc7254ec6b9033d2ae4f821426dea9c43df8594cfccb55f69fd6cad826"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -66,6 +66,12 @@
             ],
             "index": "pypi",
             "version": "==3.7.9"
+        },
+        "future": {
+            "hashes": [
+                "sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d"
+            ],
+            "version": "==0.18.2"
         },
         "idna": {
             "hashes": [
@@ -200,10 +206,10 @@
         },
         "prompt-toolkit": {
             "hashes": [
-                "sha256:a402e9bf468b63314e37460b68ba68243d55b2f8c4d0192f85a019af3945050e",
-                "sha256:c93e53af97f630f12f5f62a3274e79527936ed466f038953dfa379d4941f651a"
+                "sha256:859e1b205b6cf6a51fa57fa34202e45365cf58f8338f0ee9f4e84a4165b37d5b",
+                "sha256:ebe6b1b08c888b84c50d7f93dee21a09af39860144ff6130aadbd61ae8d29783"
             ],
-            "version": "==3.0.3"
+            "version": "==3.0.4"
         },
         "ptyprocess": {
             "hashes": [
@@ -252,6 +258,16 @@
             ],
             "version": "==2.5.2"
         },
+        "pyhive": {
+            "extras": [
+                "hive"
+            ],
+            "hashes": [
+                "sha256:a5f2b2f8bcd85a8cd80ab64ff8fbfe1c09515d266650a56f789a8d89ad66d7f4"
+            ],
+            "index": "pypi",
+            "version": "==0.6.1"
+        },
         "python-dateutil": {
             "hashes": [
                 "sha256:73ebfe9dbf22e832286dafa60473e4cd239f8592f699aa5adaf10050e6e1823c",
@@ -274,6 +290,12 @@
             "index": "pypi",
             "version": "==2.23.0"
         },
+        "sasl": {
+            "hashes": [
+                "sha256:04f22e17bbebe0cd42471757a48c2c07126773c38741b1dad8d9fe724c16289d"
+            ],
+            "version": "==0.2.1"
+        },
         "six": {
             "hashes": [
                 "sha256:236bdbdce46e6e6a3d61a337c0f8b763ca1e8717c03b369e87a7ec7ce1319c0a",
@@ -287,6 +309,18 @@
                 "sha256:a9bb130fa7aa736eda8a814b6ceb85ccf7a209ed53843d0d61e246b380afa10f"
             ],
             "version": "==0.13.2"
+        },
+        "thrift": {
+            "hashes": [
+                "sha256:9af1c86bf73433afc6010ed376a6c6aca2b54099cc0d61895f640870a9ae7d89"
+            ],
+            "version": "==0.13.0"
+        },
+        "thrift-sasl": {
+            "hashes": [
+                "sha256:762cfecaf24cc150e9a7e94e18e243c5ca42c9389660b062e9b11cb1d4ad6a09"
+            ],
+            "version": "==0.4.1"
         },
         "traitlets": {
             "hashes": [

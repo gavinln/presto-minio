@@ -219,10 +219,16 @@ hive
 
 ```
 use default;
-create external table customer_text(id string, fname string, lname string)
+create external table customer_text(
+    id string COMMENT 'id comment',
+    fname string COMMENT 'first name',
+    lname string COMMENT 'last name')
     ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
     STORED as TEXTFILE location 's3a://customer-data-text/';
 select * from customer_text;
+alter table customer_text SET TBLPROPERTIES (
+    'comment'='customer_text table with three columns'
+);
 ```
 
 4. Exit the hive cli
@@ -250,6 +256,8 @@ docker exec -it presto presto-cli
 ```
 use minio.default;
 show tables;
+show columns from customer_text;
+show create table customer_text;
 select * from customer_text;
 ```
 

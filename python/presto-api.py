@@ -6,10 +6,9 @@ import sqlite3
 from datetime import datetime
 from typing import List
 from typing import Dict
+from collections import namedtuple
 
 from urllib .parse import urlparse, urlunparse
-
-from pydantic import BaseModel, parse_obj_as
 
 import requests
 
@@ -40,42 +39,82 @@ def retrieve_query(query_url):
     return response.json()
 
 
-def get_query_url(query_obj, netloc):
-    uo = urlparse(query_obj.self)
+def get_query_url(query_self_url, netloc):
+    uo = urlparse(query_self_url)
     query_url = urlunparse(
         (uo.scheme, netloc, uo.path, '', '', '')
     )
     return query_url
 
 
-class QuerySummary(BaseModel):
-    queryId: str
-    state: str
-    self: str
-    errorType: str = None
+query_extract_fields = [
+    'queryId', 'state', 'url', 'createTime', 'endTime', 'errorType', 'query']
+
+QueryExtractBase = namedtuple(
+    'QueryExtractBase', query_extract_fields)
+
+
+def get_query_extract(query, netloc):
+    url = get_query_url(query['self'], netloc)
+    errorType = query.get('errorType', '')
+    createTime = query['queryStats']['createTime']
+    endTime = query['queryStats']['endTime']
+    query_str = query['query']
+    return QueryExtractBase(
+        query['queryId'], query['state'], url, createTime, endTime,
+        errorType, query_str)
+
+
+def get_query_detail_extract(query_detail):
+    inputs = query_detail['inputs']
+    return inputs
+
+
+def get_query_detail_table(table):
+    columns = [col['name'] for col in table['columns']]
+    return {
+        'schema': table['schema'],
+        'table': table['table'],
+        'columns': columns
+    }
+
+
+def get_query_inputs(query_detail_url):
+    '''
+    retrieves query detail and extracts the inputs
+    '''
+    query_detail = retrieve_query(query_detail_url)
+    inputs = get_query_detail_extract(query_detail)
+    return inputs
 
 
 class QueryList(list):
     @classmethod
     def retrieve(cls):
         netloc = '10.0.0.2:8080'
-        ql = retrieve_query_list(netloc)
 
-        qs_list = parse_obj_as(List[QuerySummary], ql)
-        qs = qs_list[2]
-        query_url = get_query_url(qs, netloc)
-        query = retrieve_query(query_url)
-        print(json.dumps(query['inputs']))
-        return QueryList(qs_list)
+        def get_query_extract_url(query):
+            return get_query_extract(query, netloc)
+
+        query_list = retrieve_query_list(netloc)
+        query_extract_list = list(map(get_query_extract_url, query_list))
+        for query_extract in query_extract_list:
+            # print(query_extract)
+            inputs = get_query_inputs(query_extract.url)
+            tables = map(get_query_detail_table, inputs)
+            print(list(tables))
+
+        return QueryList(query_extract_list)
 
     def to_frame(self):
-        return pd.DataFrame.from_records(qs.dict() for qs in self)
+        return pd.DataFrame.from_records(
+            (qs for qs in self), columns=query_extract_fields)
 
 
 def main():
     ql = QueryList.retrieve()
     df = ql.to_frame()
-    print(df)
+    # print(df)
 
 
 if __name__ == '__main__':
