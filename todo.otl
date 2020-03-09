@@ -19,3 +19,6 @@ Create dataframe
 	[_] Read subset Parquet
 	[_] Setup Netflix S3 reader
 	[_] Read subset Parquet using Netflix S3 reader
+
+[_] Add sqlparse to Ansible Python library install files
+	: https://github.com/andialbrecht/sqlparse

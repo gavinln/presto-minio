@@ -88,6 +88,22 @@ def get_query_inputs(query_detail_url):
     return inputs
 
 
+def query_tables_to_dataframe(tables):
+    records = []
+    for idx, table in enumerate(tables):
+        if idx == 0:
+            schema = table['schema']
+            table_name = table['table']
+
+        column_list = table['columns']
+        for column in column_list:
+            record = [schema, table_name]
+            record.append(column)
+            records.append(record)
+    df = pd.DataFrame(records, columns=['schema', 'table', 'column'])
+    return df
+
+
 class QueryList(list):
     @classmethod
     def retrieve(cls):
@@ -102,7 +118,9 @@ class QueryList(list):
             # print(query_extract)
             inputs = get_query_inputs(query_extract.url)
             tables = map(get_query_detail_table, inputs)
-            print(list(tables))
+            # print(list(tables))
+            df = query_tables_to_dataframe(tables)
+            print(df)
 
         return QueryList(query_extract_list)
 
@@ -114,7 +132,7 @@ class QueryList(list):
 def main():
     ql = QueryList.retrieve()
     df = ql.to_frame()
-    # print(df)
+    print(df)
 
 
 if __name__ == '__main__':
