@@ -56,7 +56,7 @@ vagrant ssh
 cd /vagrant
 ```
 
-5. Create a directory of Minio object storage (like S3)
+5. Create a directory of Minio object storage (like S3) - May not be needed
 
 ```
 sudo mkdir /data
@@ -158,21 +158,15 @@ dbt list
 
 ## Use Presto, Minio and Hive
 
-### Setup Presto, Minio and Hive
+### Setup Presto, Minio and Hive - new
 
-1. Clone the project
-
-```
-git clone https://github.com/starburstdata/presto-minio
-```
-
-2. Change to the project directory
+1. Change to the project directory
 
 ```
-cd /vagrant/presto-minio
+cd /vagrant/presto-minio-update
 ```
 
-3. Add to file /vagrant/presto-minio/presto/minio.properties
+2. Add to file /vagrant/presto-minio/presto/minio.properties
 
 ```
 hive.metastore-cache-ttl=0s
@@ -180,25 +174,39 @@ hive.metastore-refresh-interval = 5s
 hive.allow-drop-table=true
 hive.allow-rename-table=true
 ```
-4. Add the following to the docker-compose.yml file to expose the hive port
 
-```
-ports:
-  - '9047:9047'
-```
-
-5. Start Presto and Minio
+3. Start Presto and Minio
 
 ```
 docker-compose up -d
 ```
 
-6. View Minio at http://gavinsvr:9000/
+4. View Minio at http://gavinsvr:9000/
 
 Use the access key and secret access key from the docker-compose.yml file
 There are two folders called customer-data-text and customer-data-json
 
-7. View the Presto WebUI at http://gavinsvr:8080/
+5. View the Presto WebUI at http://gavinsvr:8080/
+
+6. Any user will work. No password is necessary
+
+7. Start the cli
+
+```
+java -jar ~/presto-cli.jar
+```
+
+8. Setup parquet-cli
+
+```
+sudo pip install parquet-cli
+```
+
+9. View the parquet file details
+
+```
+parq ./minio/data/example-parquet/example.parq
+```
 
 ### Create a table using Hive
 
@@ -362,11 +370,10 @@ mc ls minio/airline-parq
 mc mb minio/airline-parq2
 ```
 
-4. Download the Presto cli
+4. Start the Presto cli
 
 ```
-curl -o ~/presto.jar https://repo1.maven.org/maven2/com/facebook/presto/presto-cli/0.231.1/presto-cli-0.231.1-executable.jar
-java -jar ~/presto.jar --server localhost:8080 --catalog minio --schema default
+java -jar ~/presto-cli.jar --server localhost:8080 --catalog minio --schema default
 ```
 
 5. Show tables;
@@ -616,6 +623,10 @@ dremio:
 3. When adding a data source in the dremio interface use `hadoop-master` as the
    Hive metastore host
 
+Dremio may not with Minio
+
+https://community.dremio.com/t/connect-to-minio-s3-storage/906/8
+
 ## Jaffle shop project
 
 1. Change to the python code directory
@@ -681,10 +692,40 @@ presto-customer:
       threads: 1
 ```
 
-## Presto admin
+## Mongo DB
 
-Presto-admin is a Python tool to install, configure and manage Presto
-installations
+### Start MongoDB
+
+1. Change to the mongodb directory
+cd /vagrant/mongodb
+
+2. Start Mongodb
+docker-compose up -d
+
+3. Connect to Mongo
+docker-compose exec mongo mongo -u root -p
+
+4. Create a database
+use mydb
+
+5. List databases
+show dbs
+
+6. Insert data
+db.movie.insert({"name":"jaws"})
+
+7. List collections
+show collections
+
+8. Query document
+db.movie.find()
+
+9. Delete collection
+db.movie.drop()
+
+10. Drop database
+db.dropDatabase()
+
 
 ## Links
 
@@ -767,67 +808,3 @@ CREATE TABLE ip_data4 ( name varchar, email varchar, city varchar, state varchar
 insert into ip_data4 values('name1', 'email@co.com', 'city1', 'state1', localtimestamp, 2344, from_hex('eeeeaaaa'), from_hex('20010db8aaaabbbbccccddddeeeeaaaa'));
 ```
 
-## Miscellaneous
-
-[Dremio and Minio may not work][1000]
-
-[1000]: https://community.dremio.com/t/connect-to-minio-s3-storage/906/8
-
-[Clickhouse Python][1010]
-
-[1010]: https://github.com/Altinity/clickhouse-python-examples
-
-[Airline data][1020]
-
-[1020]: https://github.com/vaexio/vaex-examples
-
-## Mongo DB
-
-### Start MongoDB
-
-1. Change to the mongodb directory
-cd /vagrant/mongodb
-
-2. Start Mongodb
-docker-compose up -d
-
-3. Connect to Mongo
-docker-compose exec mongo mongo -u root -p
-
-4. Create a database
-use mydb
-
-5. List databases
-show dbs
-
-6. Insert data
-db.movie.insert({"name":"jaws"})
-
-7. List collections
-show collections
-
-8. Query document
-db.movie.find()
-
-9. Delete collection
-db.movie.drop()
-
-10. Drop database
-db.dropDatabase()
-
-
-## Presto REST api
-
-### Install Python environment
-
-1. Setup Python
-pipenv --python $(whicn python3)
-
-
-http 10.0.0.2:8080/v1/query | jq ".[] | {self}"
-
-http http://10.0.0.2:8080/v1/query/20200301_194512_00001_tfehk | jid
-
-http http://10.0.0.2:8080/v1/query/20200301_194512_00001_tfehk | jq ".inputs[].table"
-
-http http://10.0.0.2:8080/v1/query/20200301_194512_00001_tfehk | jq ".inputs[].columns[].name"
