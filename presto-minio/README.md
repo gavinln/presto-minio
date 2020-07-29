@@ -39,6 +39,30 @@ ip -4 addr show eth0
 View the Minio Browser at `http://127.0.0.1:9000/`
 View the Presto WebUI at `http://127.0.0.1:8080/`
 
+## Setup the presto cli interface
+
+1. Download Presto cli
+
+```
+curl -O https://repo1.maven.org/maven2/io/prestosql/presto-cli/339/presto-cli-339-executable.jar
+```
+
+2. Rename the presto jar
+
+3. Connect to the database
+
+```
+java -jar presto-cli.jar --server localhost:8080
+```
+
+4. Get version of Presto
+
+```
+SELECT node_version FROM system.runtime.nodes;
+```
+
+## Run Presto queries
+
 Use `docker exec -it presto presto-cli` to connect to Presto.
 
 ## Stopping
