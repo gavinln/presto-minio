@@ -45,123 +45,26 @@ vagrant plugin install vagrant-disksize
 
 
 3. Login to the virtual machine
-
 ```
 vagrant ssh
 ```
 
 4. Change to the root directory
-
 ```
 cd /vagrant
 ```
 
 5. Create a directory of Minio object storage (like S3) - May not be needed
-
 ```
 sudo mkdir /data
 sudo chown vagrant:vagrant /data
 ```
 
-## Run Postgres
-
-1. Change to the Postgres directory
-
-```
-cd /vagrant/postgres
-```
-
-2. Start the Docker containers
-
-```
-docker-compose up -d
-```
-
-3. Connect to the postgres database
-
-```
-psql -h localhost -U postgres
-```
-
-4. List databases
-
-```
-\l
-```
-
-5. Create the database dbt_example;
-
-```
-create database dbt_example;
-```
-
-3. Connect to adminer at http://192.168.33.10:8080
-
-4. Enter the following options
-
-```
-System: PostgresSQL
-Server: db
-Username: postgres
-Password: example
-Database: postgres
-```
-
-5. Run the "SQL command"
-
-```
-create database dbt_example;
-```
-
-6. Change to dbt directory
-
-```
-cd /vagrant/python/postgres-dbt_example
-```
-
-7. Start the dbt project
-
-```
-dbt init postgres-dbt_example
-```
-
-8. Add to the ~/.dbt/profiles.yml
-
-```
-dbt_example:
-  target: dev
-  outputs:
-    dev:
-      type: postgres
-      database: dbt_example
-      user: postgres
-      pass: example
-      host: localhost
-      port: 5432
-      schema: default
-      threads: 1
-```
-
-9. Test connection to the dbt_example database
-
-```
-psql -h localhost -U postgres -d dbt_example
-```
-
-10. Change the profile option in dbt_project.yml to dbt_example
-
-11. List the resources of the project
-
-```
-dbt list
-```
-
 ## Use Presto, Minio and Hive
 
-### Setup Presto, Minio and Hive - new
+### Setup Presto, Minio and Hive
 
 1. Change to the project directory
-
 ```
 cd /vagrant/presto-minio-update
 ```
@@ -176,7 +79,6 @@ hive.allow-rename-table=true
 ```
 
 3. Start Presto and Minio
-
 ```
 docker-compose up -d
 ```
@@ -190,19 +92,25 @@ There are two folders called customer-data-text and customer-data-json
 
 6. Any user will work. No password is necessary
 
-7. Start the cli
+7. Version software versions
+```
+docker-compose exec hadoop hadoop version
+docker-compose exec hadoop hive --version
+```
+
+8. Start the cli
 
 ```
 java -jar ~/presto-cli.jar
 ```
 
-8. Setup parquet-cli
+9. Setup parquet-cli
 
 ```
 sudo pip install parquet-cli
 ```
 
-9. View the parquet file details
+10. View the parquet file details
 
 ```
 parq ./minio/data/example-parquet/example.parq
@@ -589,144 +497,34 @@ with (
 insert into customer_parq2 select * from customer_parq;
 ```
 
-## Dremio
+## Spark
 
-1. Expose the 9083 port on the hadoop Docker container by adding this to
-   docker-compose.yml
+### Get project
 
+1. Change to the root directory
 ```
-dremio:
-  hostname: dremio
-  image: 'dremio/dremio-oss:latest'
-  container_name: dremio
-  ports:
-    - '9047:9047'
+cd /vagrant
 ```
 
-2. Add to ./hadoop/core-site.xml
-
+2. Clone the spark project
 ```
-<property>
-    <name>hadoop.proxyuser.dremio.hosts</name>
-    <value>*</value>
-</property>
-<property>
-    <name>hadoop.proxyuser.dremio.groups</name>
-    <value>*</value>
-</property>
-<property>
-    <name>hadoop.proxyuser.dremio.users</name>
-    <value>*</value>
-</property>
+git clone https://github.com/big-data-europe/docker-spark
 ```
 
-3. When adding a data source in the dremio interface use `hadoop-master` as the
-   Hive metastore host
-
-Dremio may not with Minio
-
-https://community.dremio.com/t/connect-to-minio-s3-storage/906/8
-
-## Jaffle shop project
-
-1. Change to the python code directory
-
+3. Change to the spark directory
 ```
-cd /vagrant/python
+cd docker-spark
 ```
 
-2. Clone the Jaffle shop project
-
+4. Start Spark
 ```
-git clone https://github.com/fishtown-analytics/jaffle_shop
-```
-
-3. Setup ~/.dbt/profiles.yml with the following settings.
-
-```
-jaffle_shop:
-  target: dev
-  outputs:
-    dev:
-      type: postgres
-      database: dbt_example
-      user: postgres
-      pass: example
-      host: localhost
-      port: 5432
-      schema: default
-      threads: 1
-```
-
-4. Setup the Jaffle shop project
-
-https://github.com/fishtown-analytics/jaffle_shop
-
-## DBT
-
-1. Change to the dbt project root
-
-```
-cd /vagrant/python
-```
-
-2. Create a project
-
-```
-dbt init presto-customer
-```
-
-2. Create a ~/.dbt/profiles.yml file
-
-```
-presto-customer:
-  target: dev
-  outputs:
-    dev:
-      type: presto
-      method: none
-      database: minio
-      host: localhost
-      port: 8080
-      schema: default
-      threads: 1
-```
-
-## Mongo DB
-
-### Start MongoDB
-
-1. Change to the mongodb directory
-cd /vagrant/mongodb
-
-2. Start Mongodb
 docker-compose up -d
+```
 
-3. Connect to Mongo
-docker-compose exec mongo mongo -u root -p
+5. Start pyspark with Python 3
+docker-compose exec spark-master bash -c "PYSPARK_PYTHON=python3 /spark/bin/pyspark"
 
-4. Create a database
-use mydb
-
-5. List databases
-show dbs
-
-6. Insert data
-db.movie.insert({"name":"jaws"})
-
-7. List collections
-show collections
-
-8. Query document
-db.movie.find()
-
-9. Delete collection
-db.movie.drop()
-
-10. Drop database
-db.dropDatabase()
-
-
+## Other [software setup](./doc/other-software.md)
 ## Links
 
 1. [Presto releases][1000]
