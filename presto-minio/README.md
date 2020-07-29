@@ -10,23 +10,47 @@ http://www.congiu.net/hive-json-serde/1.3.8/cdh5/
 
 Using `docker-compose` you set up Presto, Hadoop, and Minio containers for Presto to query data from Minio. Presto uses the Hadoop container for the metastore.
 
-# Running 
+## Start the Docker containers
 
-Run `docker-compose up -d`
+1. Get the status of the Docker daemon
 
-You can view the Minio Browser at `http://127.0.0.1:9000/`
-You can view the Presto WebUI at `http://127.0.0.1:8080/`
+```
+sudo service docker status
+```
+
+2. Start the docker daemon
+
+```
+sudo service docker start
+```
+
+3. Start the Docker services
+
+```
+docker-compose up -d
+```
+
+4. In WSL2 get the ip addr
+
+```
+ip -4 addr show eth0
+```
+
+View the Minio Browser at `http://127.0.0.1:9000/`
+View the Presto WebUI at `http://127.0.0.1:8080/`
 
 Use `docker exec -it presto presto-cli` to connect to Presto.
 
-# Stopping
+## Stopping
 
 Run `docker-compose stop`
 
 
-# Example
+## Example
 
-First create a table in the Hive metastore. Note that the location `'s3a://customer-data-text/'` points to data that already exists in the Minio container.
+First create a table in the Hive metastore. Note that the location
+`'s3a://customer-data-text/'` points to data that already exists in the Minio
+container.
 
 Run `docker exec -it hadoop-master /bin/bash`. 
 
@@ -38,7 +62,9 @@ hive> create external table customer_text(id string, fname string, lname string)
 hive> select * from customer_text;
 ```
 
-Next let's query the data from Presto. Run `docker exec -it presto presto-cli`
+Next let's query the data from Presto.
+
+Run `docker exec -it presto presto-cli`
 
 ```
 presto> use minio.default;
