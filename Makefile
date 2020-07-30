@@ -27,3 +27,13 @@ yapf:  ## yapf -i presto-api.py
 flake8:  ## flake8 presto-api.py
 	@flake8 $(SCRIPT_DIR)/python/presto-api.py
 
+presto-start:  ## start Presto
+	@docker-compose -f $(SCRIPT_DIR)/presto-minio/docker-compose.yml up -d
+	@echo "IP address: "
+	@hostname -I
+
+presto-stop:  ## stop Presto
+	docker-compose -f $(SCRIPT_DIR)/presto-minio/docker-compose.yml stop
+
+presto-ps:  ## list Presto docker containers
+	docker-compose -f $(SCRIPT_DIR)/presto-minio/docker-compose.yml ps
