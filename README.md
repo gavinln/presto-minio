@@ -524,7 +524,6 @@ docker-compose up -d
 5. Start pyspark with Python 3
 docker-compose exec spark-master bash -c "PYSPARK_PYTHON=python3 /spark/bin/pyspark"
 
-## Other [software setup](./doc/other-software.md)
 ## Links
 
 1. [Presto releases][1000]
@@ -561,6 +560,10 @@ docker-compose exec spark-master bash -c "PYSPARK_PYTHON=python3 /spark/bin/pysp
 [Integration architecture][1180]
 
 [1180]: https://github.com/gschmutz/integration-architecture-workshop
+
+Stanford course: [Mining massive datasets][1190]
+
+[1190]: https://www.edx.org/course/mining-massive-datasets
 
 ### Miscellaneous
 
