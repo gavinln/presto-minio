@@ -26,6 +26,8 @@ the VM is started.
 
 ## Setup the machine
 
+### Setup using Vagrant
+
 All the software installed exceeds the standard 10GB size of the virtual
 machine disk. Install the following plugin to resize the disk.
 
@@ -59,6 +61,15 @@ cd /vagrant
 sudo mkdir /data
 sudo chown vagrant:vagrant /data
 ```
+
+### Setup using WSL
+
+1. Install pre-requisites for pyhive (Python Hive/Presto library)
+
+```
+sudo apt install libsasl2-dev 
+```
+
 
 ## Use Presto, Minio and Hive
 
@@ -522,7 +533,10 @@ docker-compose up -d
 ```
 
 5. Start pyspark with Python 3
-docker-compose exec spark-master bash -c "PYSPARK_PYTHON=python3 /spark/bin/pyspark"
+
+``` docker-compose exec spark-master bash -c "PYSPARK_PYTHON=python3
+/spark/bin/pyspark"
+```
 
 ## Links
 
@@ -564,6 +578,16 @@ docker-compose exec spark-master bash -c "PYSPARK_PYTHON=python3 /spark/bin/pysp
 Stanford course: [Mining massive datasets][1190]
 
 [1190]: https://www.edx.org/course/mining-massive-datasets
+
+### Presto videos
+
+Using Presto with Jupyter
+
+https://www.youtube.com/watch?v=67gXN5697Vw
+
+Presto optimization
+
+https://www.youtube.com/watch?v=Z2C-iYNm2wU
 
 ### Miscellaneous
 
