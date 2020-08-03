@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "c5368b4d354985f00f4486e0dae2b0da8e3dce693814fb9e81c379f91fb3ceee"
+            "sha256": "a14ae2eb28bb861dd191713b1de75a0a0426f42a05097752a87fc82a8e031c17"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -437,7 +437,7 @@
         },
         "pyhive": {
             "extras": [
-                "presto"
+                "all"
             ],
             "hashes": [
                 "sha256:cbde78c49e76a0bc84c7ccea05373b54ed456bcf86dd978a2eaea10ab7357610"
