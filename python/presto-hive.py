@@ -135,6 +135,18 @@ def main():
     print(pm.catalogs('minio').schemas('default').tables('example'))
 
 
+def get_schemas(catalog: str):
+    ' get schemas for a specified catalog '
+    pm = PrestoMeta('10.0.0.2')
+    for c in pm.catalogs():
+        if c.name == catalog:
+            schemas = c.schemas()
+            for s in schemas:
+                print(s.name)
+            return
+    print('Unknown catalog {}'.format(catalog))
+
+
 def get_catalogs():
     ' get catalogs '
     pm = PrestoMeta('10.0.0.2')
@@ -142,8 +154,21 @@ def get_catalogs():
         print(catalog.name)
 
 
+def test():
+    print('in test')
+    server = '10.0.0.2'
+    cursor = hive.connect(server).cursor()
+    sql = 'show tables'
+    cursor.execute(sql)
+    result = cursor.fetchall()
+    print(result)
+    cursor.close()
+
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.WARN)
     fire.Fire({
-        'catalogs': get_catalogs
+        'catalogs': get_catalogs,
+        'schemas': get_schemas,
+        'test': test
     })
