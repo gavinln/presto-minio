@@ -1,10 +1,10 @@
 [_] Create project on github
-Create dataframe
-	Save dataframe to sqlite
-	Save dataframe to postgres
-	Save dataframe to presto
-	Save dataframe to hdfs file
-	Save dataframe to S3 file
+	Create dataframe
+		Save dataframe to sqlite
+		Save dataframe to postgres
+		Save dataframe to presto
+		Save dataframe to hdfs file
+		Save dataframe to S3 file
 
 [_] Document changes
     docker-compose.yml
@@ -23,6 +23,11 @@ Create dataframe
 [_] Add sqlparse to Ansible Python library install files
 	: https://github.com/andialbrecht/sqlparse
 
-[_] Spark
-	[_] Setup
-	[_] Read parquet file using Spark
+[_] Tables on Hive 2020-08-02
+	[_] Create using Presto
+	[_] Create using Hive
+
+[_] Metadata on Presto & Hive 2020-08-02
+	[_] Read using Pressto
+	[_] Read using Hive
+
