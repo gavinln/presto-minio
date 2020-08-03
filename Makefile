@@ -37,3 +37,7 @@ presto-stop:  ## stop Presto
 
 presto-ps:  ## list Presto docker containers
 	docker-compose -f $(SCRIPT_DIR)/presto-minio/docker-compose.yml ps
+
+.PHONY: presto-hive
+presto-hive:  ## create table example
+	pipenv run python python/presto-hive.py
