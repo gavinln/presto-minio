@@ -154,14 +154,16 @@ def get_catalogs():
         print(catalog.name)
 
 
-def test():
+def get_hive_tables():
     print('in test')
     server = '10.0.0.2'
-    cursor = hive.connect(server).cursor()
+    # server = 'localhost'
+    cursor = hive.connect(host=server).cursor()
+    # sql = 'show databases'
     sql = 'show tables'
     cursor.execute(sql)
-    result = cursor.fetchall()
-    print(result)
+    tables = [table for (table,) in cursor.fetchall()]
+    print(tables)
     cursor.close()
 
 
@@ -170,5 +172,5 @@ if __name__ == '__main__':
     fire.Fire({
         'catalogs': get_catalogs,
         'schemas': get_schemas,
-        'test': test
+        'hive-tables': get_hive_tables
     })
