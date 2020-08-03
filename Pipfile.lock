@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "a14ae2eb28bb861dd191713b1de75a0a0426f42a05097752a87fc82a8e031c17"
+            "sha256": "5e692d7e7bd927c6759c44795645ae0d0d3f6b0f081e2e949a580dc03da2b479"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -16,6 +16,14 @@
         ]
     },
     "default": {
+        "appnope": {
+            "hashes": [
+                "sha256:5b26757dc6f79a3b7dc9fab95359328d5747fcb2409d331ea66d0272b90ab2a0",
+                "sha256:8b995ffe925347a2138d7ac0fe77155e4311a0ea6d6da4f5128fe4b3cbe5ed71"
+            ],
+            "markers": "sys_platform == 'darwin'",
+            "version": "==0.1.0"
+        },
         "attrs": {
             "hashes": [
                 "sha256:08a96c641c3a74e44eb59afb61a24f2cb9f4d7188748e76ba4bb5edfa3cb7d1c",
@@ -437,7 +445,7 @@
         },
         "pyhive": {
             "extras": [
-                "all"
+                "hive"
             ],
             "hashes": [
                 "sha256:cbde78c49e76a0bc84c7ccea05373b54ed456bcf86dd978a2eaea10ab7357610"
@@ -519,6 +527,12 @@
             "index": "pypi",
             "version": "==2.24.0"
         },
+        "sasl": {
+            "hashes": [
+                "sha256:04f22e17bbebe0cd42471757a48c2c07126773c38741b1dad8d9fe724c16289d"
+            ],
+            "version": "==0.2.1"
+        },
         "six": {
             "hashes": [
                 "sha256:30639c035cdb23534cd4aa2dd52c3bf48f06e5f4a941509c8bafd8ce11080259",
@@ -547,6 +561,18 @@
                 "sha256:eff3703781fbc7750125f50e10f001195174f13825a92a45e9403037d539b4f4"
             ],
             "version": "==1.6.2"
+        },
+        "thrift": {
+            "hashes": [
+                "sha256:9af1c86bf73433afc6010ed376a6c6aca2b54099cc0d61895f640870a9ae7d89"
+            ],
+            "version": "==0.13.0"
+        },
+        "thrift-sasl": {
+            "hashes": [
+                "sha256:6a1c54731cb3ce61bdc041d9dc36e21f0f56db0163bb7b57be84de3fda70922f"
+            ],
+            "version": "==0.4.2"
         },
         "traitlets": {
             "hashes": [

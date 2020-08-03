@@ -14,7 +14,7 @@ flake8 = "*"
 yapf = "*"
 fastapi = "*"
 docker-compose = "*"
-pyhive = {extras = ["all"], version = "*"}
+pyhive = {extras = ["hive"], version = "*"}
 fire = "*"
 
 [requires]

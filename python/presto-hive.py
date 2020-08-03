@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 
 
 def presto_execute_fetchall(server, sql):
-    cursor = presto.connect(server).cursor()
+    cursor = presto.connect(server, port=8889).cursor()
     cursor.execute(sql)
     result = cursor.fetchall()
     cursor.close()
@@ -40,13 +40,13 @@ class PrestoTable:
         return full_name
 
     def desc(self):
-        conn = presto.connect(host=self.server)
+        conn = presto.connect(host=self.server, port=8889)
         sql = 'desc {}'.format(self._get_full_name())
         df = pd.read_sql_query(sql, conn)
         return df
 
     def stats(self):
-        conn = presto.connect(host=self.server)
+        conn = presto.connect(host=self.server, port=8889)
         sql = 'show stats for {}'.format(self._get_full_name())
         df = pd.read_sql_query(sql, conn)
         return df
@@ -126,7 +126,8 @@ def main():
 
     log.info('in main')
 
-    pm = PrestoMeta('10.0.0.2')
+    server = 'presto.liftoff.io'
+    pm = PrestoMeta(server)
     print(pm.catalogs())
     print(pm.catalogs('minio'))
     print(pm.catalogs('minio').schemas())
@@ -137,7 +138,9 @@ def main():
 
 def get_schemas(catalog: str):
     ' get schemas for a specified catalog '
-    pm = PrestoMeta('10.0.0.2')
+
+    server = 'presto.liftoff.io'
+    pm = PrestoMeta(server)
     for c in pm.catalogs():
         if c.name == catalog:
             schemas = c.schemas()
@@ -149,21 +152,32 @@ def get_schemas(catalog: str):
 
 def get_catalogs():
     ' get catalogs '
-    pm = PrestoMeta('10.0.0.2')
+    server = 'presto.liftoff.io'
+    pm = PrestoMeta(server)
     for catalog in pm.catalogs():
         print(catalog.name)
 
 
 def get_hive_tables():
     print('in test')
-    server = '10.0.0.2'
-    # server = 'localhost'
+    # server = '10.0.0.2'
+    server = 'hive.liftoff.io'
     cursor = hive.connect(host=server).cursor()
-    # sql = 'show databases'
     sql = 'show tables'
     cursor.execute(sql)
     tables = [table for (table,) in cursor.fetchall()]
     print(tables)
+    cursor.close()
+
+
+def get_hive_databases():
+    print('in test')
+    server = 'hive.liftoff.io'
+    cursor = hive.connect(host=server).cursor()
+    sql = 'show databases'
+    cursor.execute(sql)
+    databases = [database for (database,) in cursor.fetchall()]
+    print(databases)
     cursor.close()
 
 
@@ -172,5 +186,6 @@ if __name__ == '__main__':
     fire.Fire({
         'catalogs': get_catalogs,
         'schemas': get_schemas,
-        'hive-tables': get_hive_tables
+        'hive-tables': get_hive_tables,
+        'hive-databases': get_hive_databases
     })
