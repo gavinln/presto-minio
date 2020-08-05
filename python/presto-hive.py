@@ -158,34 +158,59 @@ def get_catalogs():
         print(catalog.name)
 
 
-def get_hive_tables():
-    print('in test')
-    # server = '10.0.0.2'
-    server = 'hive.liftoff.io'
+def get_hive_list(sql):
+    server = '10.0.0.2'
+    # server = 'hive.liftoff.io'
     cursor = hive.connect(host=server).cursor()
-    sql = 'show tables'
     cursor.execute(sql)
-    tables = [table for (table,) in cursor.fetchall()]
-    print(tables)
+    items = [item for (item,) in cursor.fetchall()]
     cursor.close()
+    return items
+
+
+def get_hive_tables():
+    sql = 'show tables'
+    tables = get_hive_list(sql)
+    print(tables)
 
 
 def get_hive_databases():
-    print('in test')
-    server = 'hive.liftoff.io'
-    cursor = hive.connect(host=server).cursor()
     sql = 'show databases'
-    cursor.execute(sql)
-    databases = [database for (database,) in cursor.fetchall()]
+    databases = get_hive_list(sql)
     print(databases)
-    cursor.close()
+
+
+# fire.Fire({
+#     'catalogs': get_catalogs,
+#     'schemas': get_schemas,
+#     'hive-tables': get_hive_tables,
+#     'hive-databases': get_hive_databases
+# })
+
+class HiveDatabase:
+    def show_databases(self):
+        get_hive_databases()
+
+    def show_tables(self):
+        get_hive_tables()
+
+    def show_functions(self):
+        sql = 'show functions'
+        functions = get_hive_list(sql)
+        print(functions)
+
+
+class PrestoDatabase:
+    def test(self):
+        return 'presto item'
+
+
+class Databases:
+    def __init__(self):
+        self.hive = HiveDatabase()
+        self.presto = PrestoDatabase()
 
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.WARN)
-    fire.Fire({
-        'catalogs': get_catalogs,
-        'schemas': get_schemas,
-        'hive-tables': get_hive_tables,
-        'hive-databases': get_hive_databases
-    })
+    fire.Fire(Databases)
