@@ -168,18 +168,6 @@ def get_hive_list(sql):
     return items
 
 
-def get_hive_tables():
-    sql = 'show tables'
-    tables = get_hive_list(sql)
-    print(tables)
-
-
-def get_hive_databases():
-    sql = 'show databases'
-    databases = get_hive_list(sql)
-    print(databases)
-
-
 # fire.Fire({
 #     'catalogs': get_catalogs,
 #     'schemas': get_schemas,
@@ -189,10 +177,14 @@ def get_hive_databases():
 
 class HiveDatabase:
     def show_databases(self):
-        get_hive_databases()
+        sql = 'show databases'
+        databases = get_hive_list(sql)
+        print(databases)
 
     def show_tables(self):
-        get_hive_tables()
+        sql = 'show tables'
+        tables = get_hive_list(sql)
+        print(tables)
 
     def show_functions(self):
         sql = 'show functions'
@@ -212,5 +204,6 @@ class Databases:
 
 
 if __name__ == '__main__':
+    # https://github.com/willmcgugan/rich
     logging.basicConfig(level=logging.WARN)
     fire.Fire(Databases)
