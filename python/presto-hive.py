@@ -168,6 +168,24 @@ def get_hive_list(sql):
     return items
 
 
+def get_hive_list_database_like_table(
+        sql, database=None, table=None):
+    if database is not None:
+        sql += ' in {}'.format(database)
+    if table is not None:
+        sql += " like '{}'".format(table)
+    return get_hive_list(sql)
+
+
+def get_hive_list_database_dot_table(
+        sql, database=None, table=None):
+    if database is not None:
+        sql += ' {}.'.format(database)
+    if table is not None:
+        sql += table
+    return get_hive_list(sql)
+
+
 # fire.Fire({
 #     'catalogs': get_catalogs,
 #     'schemas': get_schemas,
@@ -175,15 +193,58 @@ def get_hive_list(sql):
 #     'hive-databases': get_hive_databases
 # })
 
+def get_hive_databases():
+    sql = 'show databases'
+    return get_hive_list(sql)
+
+
+def check_hive_database(database):
+    databases = get_hive_databases()
+    msg = 'Database {} not valid.\nShould be one of these: {}'.format(
+        database, ', '.join(databases))
+    assert database in databases, msg
+
+
 class HiveDatabase:
     def show_databases(self):
-        sql = 'show databases'
-        databases = get_hive_list(sql)
+        databases = get_hive_databases()
         print(databases)
 
-    def show_tables(self):
+    def show_tables(self, database=None, table=None):
+        '''
+            validate database
+            validate table
+        '''
         sql = 'show tables'
-        tables = get_hive_list(sql)
+        tables = get_hive_list_database_like_table(sql, database, table)
+        print(tables)
+
+    def show_table_extended(self, database=None, table=None):
+        '''
+            validate database
+            validate table
+        '''
+        sql = 'show table extended'
+        tables = get_hive_list_database_like_table(sql, database, table)
+        print(tables)
+
+    def show_create_table(self, database=None, table=None):
+        '''
+            validate database
+            validate table
+        '''
+        sql = 'show create table'
+        tables = get_hive_list_database_dot_table(sql, database, table)
+        print(tables)
+
+    def show_columns(self, database=None, table=None):
+        '''
+            validate table
+        '''
+        if database is not None:
+            check_hive_database(database)
+        sql = 'show columns in '
+        tables = get_hive_list_database_dot_table(sql, database, table)
         print(tables)
 
     def show_functions(self):
