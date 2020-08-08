@@ -16,6 +16,7 @@ fastapi = "*"
 docker-compose = "*"
 pyhive = {extras = ["hive"], version = "*"}
 fire = "*"
+rich = "*"
 
 [requires]
 python_version = "3.8"

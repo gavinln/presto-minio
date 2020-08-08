@@ -127,6 +127,19 @@ def main():
     log.info('in main')
 
     server = 'presto.liftoff.io'
+    server = '10.0.0.2'
+
+    conn = hive.Connection(host=server)
+    cursor = conn.cursor()
+    cursor.execute("select * from example")
+    for result in cursor.fetchall():
+        print(result)
+
+    df = pd.read_sql("select * from example", conn)
+    print(df)
+    conn.close()
+    return
+
     pm = PrestoMeta(server)
     print(pm.catalogs())
     print(pm.catalogs('minio'))
@@ -159,32 +172,43 @@ def get_catalogs():
 
 
 def get_hive_list(sql):
-    server = '10.0.0.2'
-    # server = 'hive.liftoff.io'
-    cursor = hive.connect(host=server).cursor()
+    assert False
+    host = '10.0.0.2'
+    host = 'hive.liftoff.io'
+    cursor = hive.connect(host=host).cursor()
     cursor.execute(sql)
-    items = [item for (item,) in cursor.fetchall()]
+    items = [items for items in cursor.fetchall()]
     cursor.close()
     return items
 
 
-def get_hive_list_database_like_table(
+def get_hive_records(sql):
+    ' runs a hive sql statement and returns result '
+    host = '10.0.0.2'
+    conn = hive.Connection(host=host)
+    df = pd.read_sql(sql, conn)
+    return df
+
+
+def get_hive_records_database_like_table(
         sql, database=None, table=None):
     if database is not None:
         sql += ' in {}'.format(database)
     if table is not None:
         sql += " like '{}'".format(table)
-    return get_hive_list(sql)
+    return get_hive_records(sql)
 
 
-def get_hive_list_database_dot_table(
+def get_hive_records_database_dot_table(
         sql, database=None, table=None):
     if database is not None:
         sql += ' {}.'.format(database)
     if table is not None:
         sql += table
-    return get_hive_list(sql)
+    return get_hive_records(sql)
 
+# need a function get_hive_tbl_database_dot_table
+# for show tblproperties
 
 # fire.Fire({
 #     'catalogs': get_catalogs,
@@ -193,12 +217,14 @@ def get_hive_list_database_dot_table(
 #     'hive-databases': get_hive_databases
 # })
 
+
 def get_hive_databases():
     sql = 'show databases'
-    return get_hive_list(sql)
+    return get_hive_records(sql)
 
 
 def check_hive_database(database):
+    ' raises an error if database is not a valid database '
     databases = get_hive_databases()
     msg = 'Database {} not valid.\nShould be one of these: {}'.format(
         database, ', '.join(databases))
@@ -216,7 +242,7 @@ class HiveDatabase:
             validate table
         '''
         sql = 'show tables'
-        tables = get_hive_list_database_like_table(sql, database, table)
+        tables = get_hive_records_database_like_table(sql, database, table)
         print(tables)
 
     def show_table_extended(self, database=None, table=None):
@@ -225,7 +251,7 @@ class HiveDatabase:
             validate table
         '''
         sql = 'show table extended'
-        tables = get_hive_list_database_like_table(sql, database, table)
+        tables = get_hive_records_database_like_table(sql, database, table)
         print(tables)
 
     def show_create_table(self, database=None, table=None):
@@ -234,7 +260,7 @@ class HiveDatabase:
             validate table
         '''
         sql = 'show create table'
-        tables = get_hive_list_database_dot_table(sql, database, table)
+        tables = get_hive_records_database_dot_table(sql, database, table)
         print(tables)
 
     def show_columns(self, database=None, table=None):
@@ -244,12 +270,12 @@ class HiveDatabase:
         if database is not None:
             check_hive_database(database)
         sql = 'show columns in '
-        tables = get_hive_list_database_dot_table(sql, database, table)
+        tables = get_hive_records_database_dot_table(sql, database, table)
         print(tables)
 
     def show_functions(self):
         sql = 'show functions'
-        functions = get_hive_list(sql)
+        functions = get_hive_records(sql)
         print(functions)
 
 
@@ -266,5 +292,6 @@ class Databases:
 
 if __name__ == '__main__':
     # https://github.com/willmcgugan/rich
+    # main()
     logging.basicConfig(level=logging.WARN)
     fire.Fire(Databases)
