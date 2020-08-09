@@ -4,6 +4,8 @@ Display Presto and Hive metadata
 
 import logging
 import pathlib
+import types
+import datetime
 
 from dataclasses import dataclass
 
@@ -11,6 +13,11 @@ import pandas as pd
 
 from pyhive import presto
 from pyhive import hive
+
+from rich.console import Console
+from rich.syntax import Syntax
+
+from IPython import embed
 
 import fire
 
@@ -226,9 +233,39 @@ def get_hive_databases():
 def check_hive_database(database):
     ' raises an error if database is not a valid database '
     databases = get_hive_databases()
+    names = databases.database_name.values
     msg = 'Database {} not valid.\nShould be one of these: {}'.format(
-        database, ', '.join(databases))
-    assert database in databases, msg
+        database, ', '.join(names))
+    assert database in names, msg
+
+
+def get_formatted_value(formatter, value):
+    ''' formatter is a function or a string value
+    '''
+    if isinstance(formatter, types.FunctionType):
+        formatted_value = formatter(value)
+    else:
+        formatted_value = formatter.format(value)
+    return formatted_value
+
+
+def print_name_value_dict(name_value, formatter=None):
+    max_name_len = max(len(name) for name in name_value)
+    if max_name_len > 40:
+        max_name_len = 40
+    value_format = {} if formatter is None else formatter
+    for name, value in name_value.items():
+        if name in value_format:
+            value_formatter = formatter[name]
+            formatted_value = get_formatted_value(value_formatter, value)
+        else:
+            formatted_value = value
+        print('{name:{width}s}: {value}'.format(
+            name=name, width=max_name_len, value=formatted_value))
+
+
+def dataframe_to_dict(df):
+    return dict(df.iloc[:, [0, 1]].to_records(index=False))
 
 
 class HiveDatabase:
@@ -245,23 +282,54 @@ class HiveDatabase:
         tables = get_hive_records_database_like_table(sql, database, table)
         print(tables)
 
-    def show_table_extended(self, database=None, table=None):
+    def show_table_extended(self, database, table):
         '''
-            validate database
             validate table
         '''
+        if database is not None:
+            check_hive_database(database)
         sql = 'show table extended'
-        tables = get_hive_records_database_like_table(sql, database, table)
-        print(tables)
+        table = get_hive_records_database_like_table(sql, database, table)
+        name_value = {}
+        for items in table.tab_name.str.split(':').values:
+            name_value[items[0]] = ':'.join(items[1:])
+        print_name_value_dict(name_value)
 
-    def show_create_table(self, database=None, table=None):
+    def show_create_table(self, database, table):
         '''
-            validate database
             validate table
         '''
+        check_hive_database(database)
         sql = 'show create table'
-        tables = get_hive_records_database_dot_table(sql, database, table)
-        print(tables)
+        table = get_hive_records_database_dot_table(sql, database, table)
+        lines = table.createtab_stmt.values
+        console = Console()
+        # print('\n'.join(lines))
+        syntax = Syntax('\n'.join(lines), 'sql', theme='default')
+        console.print(syntax)
+
+    def show_partitions(self, database, table):
+        '''
+            validate table
+        '''
+        check_hive_database(database)
+        sql = 'show partitions'
+        partitions = get_hive_records_database_dot_table(sql, database, table)
+        print(partitions)
+
+    def show_tblproperties(self, database, table):
+        '''
+            validate table
+        '''
+        check_hive_database(database)
+        sql = 'show tblproperties'
+        table = get_hive_records_database_dot_table(sql, database, table)
+        name_value = dataframe_to_dict(table)
+        formatter = {
+            'transient_lastDdlTime':
+                lambda ts: datetime.datetime.fromtimestamp(int(ts))
+        }
+        print_name_value_dict(name_value, formatter)
 
     def show_columns(self, database=None, table=None):
         '''
@@ -276,7 +344,8 @@ class HiveDatabase:
     def show_functions(self):
         sql = 'show functions'
         functions = get_hive_records(sql)
-        print(functions)
+        for idx, function in enumerate(functions.tab_name.values):
+            print(idx, function)
 
 
 class PrestoDatabase:
