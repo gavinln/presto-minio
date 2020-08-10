@@ -4,10 +4,28 @@
 -- cd ~/ws/presto-minio/presto-minio
 -- java -jar presto-cli.jar
 
+/*
+# Connect o Presto Docker container
+docker exec -ti $(docker container ls -f "ancestor=starburstdata/presto" -q) bash
+# edit the JVM config file
+vi /usr/lib/presto/etc/jvm.config
+# modify the lines
+-Xmx6G
+# edit the Presto config file
+vi /usr/lib/presto/etc/config.properties
+# add to the file
+query.max-memory=5GB
+query.max-memory-per-node=1GB
+query.max-total-memory-per-node=2GB
+*/
+
 show catalogs;
 show schemas from minio;
 use minio.default;
 show tables;
+
+
+# Target directory for table 'default.example' already exists: hdfs://hadoop-master:9000/user/hive/warehouse/example
 
 -- create table
     create table example as
@@ -21,6 +39,8 @@ show tables;
             (1, 'c')
     ) as t (id, name)
    ;
+
+    show stats for example;
 
 -- display values
     select * from example;
@@ -69,7 +89,7 @@ show tables;
     ) AS t(id_val)
     ;
 
--- unnest an array
+-- unnest an array sequence
     with data as (
         select sequence(1, 3) as items
     )
@@ -78,6 +98,79 @@ show tables;
         cross join unnest(items) as t(item)
     ;
 
+
+-- unnest an array repeat
+    with data as (
+        select repeat(1, 10) as items
+    )
+    select item, floor(random(3)) as rand_int
+    from data
+        cross join unnest(items) as t(item)
+    ;
+
+-- create a grouped data set
+    with cycle as (
+        select sequence(1, 3) as items
+    ),
+    data as (
+        select
+            row_number() over() as id, 
+            s.item as grp_code
+        from cycle 
+            cross join unnest(items) as t(item)
+            cross join unnest(items) as s(item)
+    )
+    select grp_code, sum(id)
+    from data
+    group by grp_code
+    ;
+
+
+-- million row data set
+    create table minio.default.million_row_data as
+    with cycle as (
+        select sequence(1, 1000) as items
+    ),
+    data as (
+        select
+            row_number() over() as id, 
+            s.item as grp_code
+        from cycle 
+            cross join unnest(items) as t(item)
+            cross join unnest(items) as s(item)
+    )
+    select *
+    from data
+    ;
+
+-- billion row data set
+    create table minio.default.billion_row_data as
+    with cycle as (
+        select sequence(1, 1000) as items
+    ),
+    data as (
+        select
+            row_number() over() as id, 
+            s.item as grp_code
+        from cycle 
+            cross join unnest(items) as t(item)
+            cross join unnest(items) as s(item)
+            cross join unnest(items) as u(item)
+    )
+    select *
+    from data
+    ;
+
+    -- Using Minio browser http://10.0.0.2:9000/ create bucket example-data
+    CREATE TABLE default.billion_rows
+    with (format='parquet', external_location='s3a://example-data/billion-rows/') as
+    select * from billion_row_data
+    ;
+
+
+select count(*) from billion_row_data;
+
+select grp_code, avg(id) from billion_row_data where grp_code < 20 group by grp_code;
 
 /* Aggregate functions */
 
