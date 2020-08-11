@@ -127,16 +127,35 @@ class PrestoMeta:
         return catalogs
 
 
+def get_hive_host():
+    host = '10.0.0.2'
+    host = 'hive.liftoff.io'
+    return host
+
+
+def get_presto_host():
+    host = '10.0.0.2'
+    host = 'presto.liftoff.io'
+    return host
+
+
+def get_presto_records(sql):
+    ' runs a presto sql statement and returns result '
+    host = get_presto_host()
+    conn = presto.Connection(host=host, port=8889)
+    df = pd.read_sql(sql, conn)
+    return df
+
+
 def main():
     log_pyhive = logging.getLogger('pyhive.presto')
     log_pyhive.setLevel(logging.WARN)
 
     log.info('in main')
 
-    server = 'presto.liftoff.io'
-    server = '10.0.0.2'
+    host = get_hive_host()
 
-    conn = hive.Connection(host=server)
+    conn = hive.Connection(host=host)
     cursor = conn.cursor()
     cursor.execute("select * from example")
     for result in cursor.fetchall():
@@ -179,9 +198,7 @@ def get_catalogs():
 
 
 def get_hive_list(sql):
-    assert False
-    host = '10.0.0.2'
-    host = 'hive.liftoff.io'
+    host = get_hive_host()
     cursor = hive.connect(host=host).cursor()
     cursor.execute(sql)
     items = [items for items in cursor.fetchall()]
@@ -191,7 +208,7 @@ def get_hive_list(sql):
 
 def get_hive_records(sql):
     ' runs a hive sql statement and returns result '
-    host = '10.0.0.2'
+    host = get_hive_host()
     conn = hive.Connection(host=host)
     df = pd.read_sql(sql, conn)
     return df
@@ -290,6 +307,7 @@ class HiveDatabase:
             check_hive_database(database)
         sql = 'show table extended'
         table = get_hive_records_database_like_table(sql, database, table)
+        print(table)
         name_value = {}
         for items in table.tab_name.str.split(':').values:
             name_value[items[0]] = ':'.join(items[1:])
@@ -307,6 +325,25 @@ class HiveDatabase:
         # print('\n'.join(lines))
         syntax = Syntax('\n'.join(lines), 'sql', theme='default')
         console.print(syntax)
+
+    def show_create_tables(self):
+        '''
+            show create table statements for all tables in flat_rtb database
+        '''
+        database = 'flat_rtb'
+        sql = 'show tables'
+        tables = get_hive_records_database_like_table(sql, database)
+        print(tables)
+        print('There are {} tables in database {}'.format(
+            tables.shape[0], database))
+        create_stmt_list = []
+        sql = 'show create table'
+        for idx, table in enumerate(tables.tab_name.values):
+            print('{}: {} of {}'.format(table, idx, tables.shape[0]))
+            table = get_hive_records_database_dot_table(sql, database, table)
+            lines = table.createtab_stmt.values
+            create_stmt_list.append('\n'.join(lines))
+        print('\n'.join(create_stmt_list))
 
     def show_partitions(self, database, table):
         '''
@@ -342,6 +379,8 @@ class HiveDatabase:
         print(tables)
 
     def show_functions(self):
+        ''' list all functions
+        '''
         sql = 'show functions'
         functions = get_hive_records(sql)
         for idx, function in enumerate(functions.tab_name.values):
@@ -349,8 +388,61 @@ class HiveDatabase:
 
 
 class PrestoDatabase:
-    def test(self):
-        return 'presto item'
+    '''
+    show catalogs
+    show schemas from catalog
+    show columns
+    show create function
+    show create table
+    show create view
+    show functions
+    show grants
+    show role grants
+    show roles
+    show session
+    show stats
+    show tables
+    '''
+
+    def show_tables(self):
+        '''
+            show tables from hive.flat_rtb
+        '''
+        sql = 'show tables from hive.flat_rtb'
+        tables = get_presto_records(sql)
+        print(tables)
+
+    def desc_table(self, table):
+        '''
+            describe table from hive.flat_rtb
+        '''
+        sql = 'describe hive.flat_rtb.{}'.format(table)
+        df = get_presto_records(sql)
+        print(df)
+
+    def desc_tables(self):
+        '''
+            describe all tables from hive.flat_rtb
+        '''
+        sql = 'show tables from hive.flat_rtb'
+        tables = get_presto_records(sql)
+        df_list = []
+        column_count = 0
+        for idx, table in enumerate(tables.Table.values):
+            print(table)
+            sql = 'describe hive.flat_rtb.{}'.format(table)
+            df = get_presto_records(sql)
+            column_count += df.shape[0]
+            df_list.append(df)
+            if idx > 100:
+                break
+
+        message = 'Showing details for {} tables, {} columns'.format(
+            len(df_list), column_count)
+        print(message)
+        all_tables = pd.concat(df_list, axis='index')
+        print('max comment length {}'.format(all_tables.Comment.str.len().max()))
+        # embed()
 
 
 class Databases:
