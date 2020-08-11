@@ -129,13 +129,13 @@ class PrestoMeta:
 
 def get_hive_host():
     host = '10.0.0.2'
-    host = 'hive.liftoff.io'
+    # host = 'hive.liftoff.io'
     return host
 
 
 def get_presto_host():
     host = '10.0.0.2'
-    host = 'presto.liftoff.io'
+    # host = 'presto.liftoff.io'
     return host
 
 

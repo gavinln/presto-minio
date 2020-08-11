@@ -71,6 +71,16 @@ show tblproperties default.example;
     show partitions partition_example;
 
 
+    CREATE TABLE billion_clustered (
+        id int,
+        grp_code int
+    )
+    clustered by (grp_code) into 100 buckets
+    ;
+
+    show tables;
+
+-- [CLUSTERED BY (col_name, col_name, ...) [SORTED BY (col_name [ASC|DESC], ...)] INTO num_buckets BUCKETS]
 
 describe example;
 

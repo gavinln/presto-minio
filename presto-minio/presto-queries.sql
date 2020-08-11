@@ -24,6 +24,9 @@ show schemas from minio;
 use minio.default;
 show tables;
 
+drop table billion_rows;
+drop table billion_row_data;
+drop table billion_clustered;
 
 # Target directory for table 'default.example' already exists: hdfs://hadoop-master:9000/user/hive/warehouse/example
 
@@ -98,7 +101,6 @@ show tables;
         cross join unnest(items) as t(item)
     ;
 
-
 -- unnest an array repeat
     with data as (
         select repeat(1, 10) as items
@@ -125,9 +127,8 @@ show tables;
     group by grp_code
     ;
 
-
--- million row data set
-    create table minio.default.million_row_data as
+-- billion row data set
+    create table minio.default.billion_row_data as
     with cycle as (
         select sequence(1, 1000) as items
     ),
@@ -146,7 +147,7 @@ show tables;
 -- billion row data set
     create table minio.default.billion_row_data as
     with cycle as (
-        select sequence(1, 1000) as items
+        select sequence(1, 400) as items
     ),
     data as (
         select
@@ -167,10 +168,31 @@ show tables;
     select * from billion_row_data
     ;
 
+    select *
+    from billion_rows
+    limit 10
+    ;
 
-select count(*) from billion_row_data;
+    SELECT * FROM system.metadata.table_properties;
 
-select grp_code, avg(id) from billion_row_data where grp_code < 20 group by grp_code;
+    CREATE TABLE default.billion_clustered
+    with (
+        format = 'parquet',
+        external_location = 's3a://example-data/billion-clustered/',
+        bucketed_by =  ARRAY['grp_code'],
+        bucket_count = 100
+    ) as
+    select * from billion_row_data
+    ;
+
+    select *
+    from billion_clustered
+    limit 10
+    ;
+
+    select grp_code, avg(id) from billion_rows where grp_code < 20 group by grp_code;
+
+    select grp_code, avg(id) from billion_clustered where grp_code < 20 group by grp_code;
 
 /* Aggregate functions */
 
