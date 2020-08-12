@@ -142,7 +142,8 @@ def get_presto_host():
 def get_presto_records(sql):
     ' runs a presto sql statement and returns result '
     host = get_presto_host()
-    conn = presto.Connection(host=host, port=8889)
+    # conn = presto.Connection(host=host, port=8889)
+    conn = presto.Connection(host=host)
     df = pd.read_sql(sql, conn)
     return df
 
@@ -409,6 +410,7 @@ class PrestoDatabase:
             show tables from hive.flat_rtb
         '''
         sql = 'show tables from hive.flat_rtb'
+        sql = 'show tables from minio.default'
         tables = get_presto_records(sql)
         print(tables)
 
@@ -441,7 +443,9 @@ class PrestoDatabase:
             len(df_list), column_count)
         print(message)
         all_tables = pd.concat(df_list, axis='index')
-        print('max comment length {}'.format(all_tables.Comment.str.len().max()))
+        print(
+            'max comment length {}'.format(
+                all_tables.Comment.str.len().max()))
         # embed()
 
 

@@ -190,9 +190,31 @@ drop table billion_clustered;
     limit 10
     ;
 
+    -- 11 seconds
     select grp_code, avg(id) from billion_rows where grp_code < 20 group by grp_code;
 
+    -- 1.6 seconds
     select grp_code, avg(id) from billion_clustered where grp_code < 20 group by grp_code;
+
+
+    -- succeeds in 15 seconds
+    select grp_code, approx_distinct(id)
+    from billion_rows
+    group by 1
+    ;
+
+    -- fails with query exceeded per-node user memory limit of 102.4MB
+    select grp_code, count(distinct id)
+    from billion_rows
+    group by 1
+    ;
+
+    -- succeeds in 7 seconds
+    select grp_code, approx_distinct(id)
+    from billion_clustered
+    group by 1
+    ;
+
 
 /* Aggregate functions */
 
