@@ -24,10 +24,6 @@ show schemas from minio;
 use minio.default;
 show tables;
 
-drop table billion_rows;
-drop table billion_row_data;
-drop table billion_clustered;
-
 # Target directory for table 'default.example' already exists: hdfs://hadoop-master:9000/user/hive/warehouse/example
 
 -- create table
@@ -127,94 +123,8 @@ drop table billion_clustered;
     group by grp_code
     ;
 
--- billion row data set
-    create table minio.default.billion_row_data as
-    with cycle as (
-        select sequence(1, 1000) as items
-    ),
-    data as (
-        select
-            row_number() over() as id, 
-            s.item as grp_code
-        from cycle 
-            cross join unnest(items) as t(item)
-            cross join unnest(items) as s(item)
-    )
-    select *
-    from data
-    ;
-
--- billion row data set
-    create table minio.default.billion_row_data as
-    with cycle as (
-        select sequence(1, 400) as items
-    ),
-    data as (
-        select
-            row_number() over() as id, 
-            s.item as grp_code
-        from cycle 
-            cross join unnest(items) as t(item)
-            cross join unnest(items) as s(item)
-            cross join unnest(items) as u(item)
-    )
-    select *
-    from data
-    ;
-
     -- Using Minio browser http://10.0.0.2:9000/ create bucket example-data
-    CREATE TABLE default.billion_rows
-    with (format='parquet', external_location='s3a://example-data/billion-rows/') as
-    select * from billion_row_data
-    ;
-
-    select *
-    from billion_rows
-    limit 10
-    ;
-
     SELECT * FROM system.metadata.table_properties;
-
-    CREATE TABLE default.billion_clustered
-    with (
-        format = 'parquet',
-        external_location = 's3a://example-data/billion-clustered/',
-        bucketed_by =  ARRAY['grp_code'],
-        bucket_count = 100
-    ) as
-    select * from billion_row_data
-    ;
-
-    select *
-    from billion_clustered
-    limit 10
-    ;
-
-    -- 11 seconds
-    select grp_code, avg(id) from billion_rows where grp_code < 20 group by grp_code;
-
-    -- 1.6 seconds
-    select grp_code, avg(id) from billion_clustered where grp_code < 20 group by grp_code;
-
-
-    -- succeeds in 15 seconds
-    select grp_code, approx_distinct(id)
-    from billion_rows
-    group by 1
-    ;
-
-    -- fails with query exceeded per-node user memory limit of 102.4MB
-    select grp_code, count(distinct id)
-    from billion_rows
-    group by 1
-    ;
-
-    -- succeeds in 7 seconds
-    select grp_code, approx_distinct(id)
-    from billion_clustered
-    group by 1
-    ;
-
 
 /* Aggregate functions */
 
@@ -256,4 +166,6 @@ drop table billion_clustered;
     ;
 
 
-
+-- table metadata
+    show tables like 'external_data';
+    show create table external_data;
