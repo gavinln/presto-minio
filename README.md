@@ -537,6 +537,11 @@ docker-compose up -d
 ``` docker-compose exec spark-master bash -c "PYSPARK_PYTHON=python3
 /spark/bin/pyspark"
 ```
+## Miscellaneous
+
+### Improve data access
+
+Definition: If data has been accessed before, the same data should be easier to access by another employee in the future.
 
 ## Links
 
