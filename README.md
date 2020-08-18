@@ -543,6 +543,10 @@ docker-compose up -d
 
 Definition: If data has been accessed before, the same data should be easier to access by another employee in the future.
 
+[Hyperloglog and minhash](https://tech.nextroll.com/blog/data/2013/07/10/hll-minhash.html)
+
+[Python datasketch](https://github.com/ekzhu/datasketch)
+
 ## Links
 
 1. [Presto releases][1000]

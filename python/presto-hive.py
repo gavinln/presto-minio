@@ -6,6 +6,7 @@ import logging
 import pathlib
 import types
 import datetime
+import textwrap
 
 from dataclasses import dataclass
 
@@ -129,21 +130,21 @@ class PrestoMeta:
 
 def get_hive_host():
     host = '10.0.0.2'
-    # host = 'hive.liftoff.io'
+    host = 'hive.liftoff.io'
     return host
 
 
 def get_presto_host():
     host = '10.0.0.2'
-    # host = 'presto.liftoff.io'
+    host = 'presto.liftoff.io'
     return host
 
 
 def get_presto_records(sql):
     ' runs a presto sql statement and returns result '
     host = get_presto_host()
-    # conn = presto.Connection(host=host, port=8889)
-    conn = presto.Connection(host=host)
+    # conn = presto.Connection(host=host)
+    conn = presto.Connection(host=host, port=8889)
     df = pd.read_sql(sql, conn)
     return df
 
@@ -327,24 +328,52 @@ class HiveDatabase:
         syntax = Syntax('\n'.join(lines), 'sql', theme='default')
         console.print(syntax)
 
-    def show_create_tables(self):
-        '''
-            show create table statements for all tables in flat_rtb database
-        '''
-        database = 'flat_rtb'
+    @staticmethod
+    def _get_create_stmt(database, table):
+        sql = 'show create table'
+        table = get_hive_records_database_dot_table(sql, database, table)
+        lines = table.createtab_stmt.values
+        create_stmt = '\n'.join(lines)
+        return create_stmt
+
+    @staticmethod
+    def _show_create_tables(database):
+
+        def print_indent(text, indent_level: int, indent_str='\t'):
+            assert indent_level > 0, 'indent_level should be greater than 0'
+            print(textwrap.indent(text, indent_str * indent_level))
+
         sql = 'show tables'
         tables = get_hive_records_database_like_table(sql, database)
-        print(tables)
-        print('There are {} tables in database {}'.format(
-            tables.shape[0], database))
+
+        table_count_str = 'Database {} has {} tables'.format(
+            database, tables.shape[0])
+        print_indent(table_count_str, 1)
+
         create_stmt_list = []
-        sql = 'show create table'
         for idx, table in enumerate(tables.tab_name.values):
-            print('{}: {} of {}'.format(table, idx, tables.shape[0]))
-            table = get_hive_records_database_dot_table(sql, database, table)
-            lines = table.createtab_stmt.values
-            create_stmt_list.append('\n'.join(lines))
-        print('\n'.join(create_stmt_list))
+            table_number_str = '{}: {} of {}'.format(table, idx, tables.shape[0])
+            print_indent(table_number_str, 2)
+
+            create_stmt = HiveDatabase._get_create_stmt(database, table)
+            print_indent(create_stmt, 3)
+
+            create_stmt_list.append(create_stmt)
+
+        # print('\n'.join(create_stmt_list))
+
+    def show_create_tables(self):
+        '''
+            show create table statements for all tables in all databases
+
+        database ben has 292 tables
+        database temp has 111 tables
+        '''
+        databases = get_hive_databases()
+        for idx, database in enumerate(databases.database_name.values):
+            print('\nDATABASE {}: {} of {} databases'.format(
+                database, idx, databases.shape[0]))
+            HiveDatabase._show_create_tables(database)
 
     def show_partitions(self, database, table):
         '''
@@ -388,6 +417,14 @@ class HiveDatabase:
             print(idx, function)
 
 
+def display_df_all(df):
+    max_rows = 1000
+    max_cols = 1000
+    with pd.option_context(
+            "display.max_rows", max_rows, "display.max_columns", max_cols):
+        print(df)
+
+
 class PrestoDatabase:
     '''
     show catalogs
@@ -403,6 +440,9 @@ class PrestoDatabase:
     show session
     show stats
     show tables
+
+    describe database.table;
+    show columns from database.table;
     '''
 
     def show_tables(self):
@@ -410,17 +450,26 @@ class PrestoDatabase:
             show tables from hive.flat_rtb
         '''
         sql = 'show tables from hive.flat_rtb'
-        sql = 'show tables from minio.default'
+        # sql = 'show tables from minio.default'
         tables = get_presto_records(sql)
         print(tables)
 
-    def desc_table(self, table):
+    def desc_table(self, table, schema):
         '''
-            describe table from hive.flat_rtb
+            describe table from hive
         '''
-        sql = 'describe hive.flat_rtb.{}'.format(table)
+        sql = 'describe hive.{}.{}'.format(schema, table)
         df = get_presto_records(sql)
         print(df)
+
+    def show_create_table(self, table, schema):
+        '''
+            show create table
+        '''
+        sql = 'show create table {}.{}'.format(schema, table)
+        df = get_presto_records(sql)
+        create_stmt = df[['Create Table']].values[0][0]
+        print(create_stmt)
 
     def desc_tables(self):
         '''
