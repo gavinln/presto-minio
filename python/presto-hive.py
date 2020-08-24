@@ -130,13 +130,13 @@ class PrestoMeta:
 
 def get_hive_host():
     host = '10.0.0.2'
-    host = 'hive.liftoff.io'
+    # host = 'hive.liftoff.io'
     return host
 
 
 def get_presto_host():
     host = '10.0.0.2'
-    host = 'presto.liftoff.io'
+    # host = 'presto.liftoff.io'
     return host
 
 
@@ -230,7 +230,7 @@ def get_hive_records_database_dot_table(
     if database is not None:
         sql += ' {}.'.format(database)
     if table is not None:
-        sql += table
+        sql += ' ' + table
     return get_hive_records(sql)
 
 # need a function get_hive_tbl_database_dot_table
@@ -288,20 +288,28 @@ def dataframe_to_dict(df):
 
 
 class HiveDatabase:
+    ' display meta data from a hive database '
+
     def show_databases(self):
+        ' list all databases '
         databases = get_hive_databases()
         print(databases)
 
-    def show_tables(self, database=None, table=None):
+    def show_tables(self, database=None):
+        ''' list all tables
         '''
-            validate database
-            validate table
+        sql = 'show tables'
+        tables = get_hive_records_database_like_table(sql, database)
+        print(tables)
+
+    def show_table(self, table, database=None):
+        ''' show table
         '''
         sql = 'show tables'
         tables = get_hive_records_database_like_table(sql, database, table)
         print(tables)
 
-    def show_table_extended(self, database, table):
+    def show_table_extended(self, table, database=None):
         '''
             validate table
         '''
@@ -309,17 +317,19 @@ class HiveDatabase:
             check_hive_database(database)
         sql = 'show table extended'
         table = get_hive_records_database_like_table(sql, database, table)
-        print(table)
+        # print(table)
         name_value = {}
         for items in table.tab_name.str.split(':').values:
-            name_value[items[0]] = ':'.join(items[1:])
+            if len(items[0]) > 0:
+                name_value[items[0]] = ':'.join(items[1:])
         print_name_value_dict(name_value)
 
-    def show_create_table(self, database, table):
+    def show_create_table(self, table, database=None):
         '''
             validate table
         '''
-        check_hive_database(database)
+        if database is not None:
+            check_hive_database(database)
         sql = 'show create table'
         table = get_hive_records_database_dot_table(sql, database, table)
         lines = table.createtab_stmt.values
