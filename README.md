@@ -539,9 +539,14 @@ docker-compose up -d
 ```
 ## Miscellaneous
 
-### Improve data access
+Setup up AWS cli
 
-Definition: If data has been accessed before, the same data should be easier to access by another employee in the future.
+```
+export AWS_CONFIG_FILE=$(realpath ./do_not_checkin/credentials-minio)
+aws --endpoint=http://10.0.0.2:9000/ s3 ls
+```
+
+[Metaflow S3](https://docs.metaflow.org/metaflow/data#data-in-s-3-metaflow-s3)
 
 [Hyperloglog and minhash](https://tech.nextroll.com/blog/data/2013/07/10/hll-minhash.html)
 

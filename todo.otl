@@ -23,19 +23,12 @@
 [_] Add sqlparse to Ansible Python library install files
 	: https://github.com/andialbrecht/sqlparse
 
-[_] Tables on Hive 2020-08-02
-	[_] Create using Presto
-	[_] Create using Hive
+[X] Tables on Hive 2020-08-02
+	[X] Create using Presto
+	[X] Create using Hive
 
-[_] Metadata on Presto & Hive 2020-08-02
-	[_] Read using Hive
-		Show - 0 parameters
-			show functions
-			show databases
-			show tables
-		Show - 1 parameters
-			show tables in database
-
-		Describe
-	[_] Read using Pressto
+[_] Read S3 parquet file 2020-08-23
+	[_] Using boto
+	[_] Using S3FS
+	https://github.com/awslabs/aws-data-wrangler
 

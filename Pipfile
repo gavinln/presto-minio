@@ -17,6 +17,7 @@ docker-compose = "*"
 pyhive = {extras = ["hive"], version = "*"}
 fire = "*"
 rich = "*"
+awscli = "*"
 
 [requires]
 python_version = "3.8"
