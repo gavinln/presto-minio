@@ -16,6 +16,7 @@ from IPython import embed
 
 # import dask.dataframe as dd
 import pyarrow.parquet as pq
+import pyarrow as pa
 
 from pyarrow import fs
 
@@ -41,15 +42,23 @@ def print_parq_file_info(parq_file):
 
 
 def read_pafs_input_file(pafs, file_name):
+    # TODO: change name to print_pafs_file
     f = pafs.open_input_file(file_name)
     print(f.readall())
     f.close()
 
 
 def read_pafs_input_stream(pafs, file_name):
+    # TODO: change name to print_pafs_stream
     f = pafs.open_input_stream(file_name)
     print(f.readall())
     f.close()
+
+
+def print_file_info(file_system, file_selector):
+    file_info_list = file_system.get_file_info(file_selector)
+    for file_info in file_info_list:
+        print(file_info.path)
 
 
 def main():
@@ -61,22 +70,22 @@ def main():
     minio = fs.S3FileSystem(scheme="http", endpoint_override="10.0.0.2:9000")
 
     # List all contents in a bucket, recursively
-    t1 = fs.FileSelector('customer-data-text', recursive=True)
-    # t2 = minio.get_file_info(t1)
+    file_selector = fs.FileSelector('customer-data-text', recursive=True)
+    print_file_info(minio, file_selector)
+
     read_pafs_input_file(minio, 'customer-data-text/customer.csv')
     read_pafs_input_stream(minio, 'customer-data-text/customer.csv')
 
-    pq_file = pq.ParquetFile(minio.open_input_file(
+    print_parq_file_info(minio.open_input_file(
         'airline-parq/airline-flights-1987.parq'))
 
-    embed()
-
     return
+
+    # TODO: read multiple files using dataset
 
     dataset = pq.ParquetDataset(file_parquet, filesystem=minio)
     table = dataset.read()
     print(table)
-    # print_parq_file_info(file_parquet)
 
 
 if __name__ == '__main__':
