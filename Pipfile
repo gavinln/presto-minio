@@ -18,6 +18,7 @@ pyhive = {extras = ["hive"], version = "*"}
 fire = "*"
 rich = "*"
 awscli = "*"
+pyarrow = "*"
 
 [requires]
 python_version = "3.8"

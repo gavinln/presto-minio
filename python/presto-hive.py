@@ -385,11 +385,12 @@ class HiveDatabase:
                 database, idx, databases.shape[0]))
             HiveDatabase._show_create_tables(database)
 
-    def show_partitions(self, database, table):
+    def show_partitions(self, table, database=None):
         '''
             validate table
         '''
-        check_hive_database(database)
+        if database is not None:
+            check_hive_database(database)
         sql = 'show partitions'
         partitions = get_hive_records_database_dot_table(sql, database, table)
         print(partitions)

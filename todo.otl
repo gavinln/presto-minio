@@ -28,6 +28,7 @@
 	[X] Create using Hive
 
 [_] Read S3 parquet file 2020-08-23
+	[_] Use dask
 	[_] Using boto
 	[_] Using S3FS
 	https://github.com/awslabs/aws-data-wrangler
