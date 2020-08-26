@@ -179,7 +179,7 @@ show tables;
  */
 
 -- 
-    select grp_code, count(*)  -- 2.65 seconds
+    select grp_code, count(*)  -- 2 seconds
     from ft_million_rows
     group by 1
     ;
@@ -191,7 +191,7 @@ show tables;
     ;
 
 -- 
-    select grp_code, count(*)  -- 7 seconds
+    select grp_code, count(*)  -- 6 seconds
     from external_data
     group by 1
     ;
@@ -207,20 +207,19 @@ show tables;
     select * from ft_million_rows
     ;
 
-    select grp_code, count(*)  -- 3 seconds
+    select grp_code, count(*)  -- 4 seconds
     from external_clustered
     group by 1
     ;
 
-
 -- Count for external table
-    select count(*)
+    select count(*)  -- 4 seconds
     from (
         select grp_code, avg(id) from external_data where grp_code < 200 group by grp_code
     );
 
 -- Count for clustered table
-    select count(*)
+    select count(*)  -- 2.5 seconds
     from (
         select grp_code, avg(id) from external_clustered where grp_code < 200 group by grp_code
     );
