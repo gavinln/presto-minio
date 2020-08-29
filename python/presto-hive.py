@@ -144,7 +144,8 @@ def get_presto_records(sql):
     ' runs a presto sql statement and returns result '
     host = get_presto_host()
     # conn = presto.Connection(host=host)
-    conn = presto.Connection(host=host, port=8889)
+    # conn = presto.Connection(host=host, port=8889)
+    conn = presto.Connection(host=host, port=8080)
     df = pd.read_sql(sql, conn)
     return df
 
@@ -288,7 +289,16 @@ def dataframe_to_dict(df):
 
 
 class HiveDatabase:
-    ' display meta data from a hive database '
+    ''' display meta data from a hive database
+
+        presto-hive.py hive show-databases
+        presto-hive.py hive show-tables --database default
+        presto-hive.py hive show-table customer_text --database default
+        presto-hive.py hive show-columns customer_text --database default
+        presto-hive.py hive show-create-table customer_text --database default
+        presto-hive.py hive show-table-extended customer_text --database default
+        presto-hive.py hive show-tblproperties customer_text --database default
+    '''
 
     def show_databases(self):
         ' list all databases '
@@ -437,35 +447,81 @@ def display_df_all(df):
 
 
 class PrestoDatabase:
-    '''
-    show catalogs
-    show schemas from catalog
-    show columns
+    ''' display meta data from a presto database
+
+    presto-hive.py presto show-catalogs
+    presto-hive.py presto show-schemas minio
+    presto-hive.py presto show-tables default minio
+    presto-hive.py presto show-table customer_text default minio
+    presto-hive.py presto show-columns customer_text default minio
+    presto-hive.py presto show-create-table customer_text default minio
+    presto-hive.py presto show-stats customer_text default minio
+
     show create function
-    show create table
     show create view
     show functions
     show grants
     show role grants
     show roles
     show session
-    show stats
-    show tables
 
     describe database.table;
-    show columns from database.table;
     '''
 
-    def show_tables(self):
+    def show_catalogs(self):
         '''
-            show tables from hive.flat_rtb
         '''
-        sql = 'show tables from hive.flat_rtb'
-        # sql = 'show tables from minio.default'
+        sql = 'show catalogs'
+        catalogs = get_presto_records(sql)
+        print(catalogs)
+
+    def show_schemas(self, catalog):
+        '''
+        '''
+        sql = 'show schemas from {}'.format(catalog)
+        catalogs = get_presto_records(sql)
+        print(catalogs)
+
+    def show_tables(self, schema, catalog):
+        '''
+        '''
+        sql = 'show tables from {}.{}'.format(catalog, schema)
+        catalogs = get_presto_records(sql)
+        print(catalogs)
+
+    def show_table(self, table, schema, catalog):
+        '''
+        '''
+        sql = "show tables from {}.{} like '{}'".format(
+            catalog, schema, table)
         tables = get_presto_records(sql)
         print(tables)
 
-    def desc_table(self, table, schema):
+    def show_columns(self, table, schema, catalog):
+        '''
+        '''
+        sql = "show columns from {}.{}.{}".format(
+            catalog, schema, table)
+        columns = get_presto_records(sql)
+        print(columns)
+
+    def show_create_table(self, table, schema, catalog):
+        '''
+            show create table
+        '''
+        sql = 'show create table {}.{}.{}'.format(catalog, schema, table)
+        df = get_presto_records(sql)
+        create_stmt = df[['Create Table']].values[0][0]
+        print(create_stmt)
+
+    def show_stats(self, table, schema, catalog):
+        '''
+        '''
+        sql = 'show stats for {}.{}.{}'.format(catalog, schema, table)
+        catalogs = get_presto_records(sql)
+        print(catalogs)
+
+    def _desc_table(self, table, schema):
         '''
             describe table from hive
         '''
@@ -473,16 +529,7 @@ class PrestoDatabase:
         df = get_presto_records(sql)
         print(df)
 
-    def show_create_table(self, table, schema):
-        '''
-            show create table
-        '''
-        sql = 'show create table {}.{}'.format(schema, table)
-        df = get_presto_records(sql)
-        create_stmt = df[['Create Table']].values[0][0]
-        print(create_stmt)
-
-    def desc_tables(self):
+    def _desc_tables(self):
         '''
             describe all tables from hive.flat_rtb
         '''

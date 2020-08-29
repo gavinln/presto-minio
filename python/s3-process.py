@@ -88,18 +88,21 @@ def print_parquet_pandas_shape(bucket_uri, file_system):
 def print_parquet_dataset_info(bucket_uri, file_system, verbose=False):
     dataset = pq.ParquetDataset(
         bucket_uri, filesystem=file_system, use_legacy_dataset=False)
-    print('There are {} pieces'.format(len(dataset.pieces)))
-    if verbose:
-        for idx, piece in enumerate(dataset.pieces):
-            piece.scan()
-            print('\t', idx, piece.path)
-            # print('There are {} row groups'.format(len(piece.row_groups)))
-            for row_group in piece.row_groups:
-                print('\trows', row_group.num_rows)
-                print('\t{}'.format(row_group.statistics))
+    print('{} pieces'.format(len(dataset.pieces)))
+    row_count = 0
+    for idx, piece in enumerate(dataset.pieces):
+        piece.ensure_complete_metadata()
+        if verbose:
+            print('\t{} {}'.format(idx, piece.path))
+            print('\tThere are {} row groups'.format(len(piece.row_groups)))
+        for idx2, row_group in enumerate(piece.row_groups):
+            if verbose:
+                print('\t\t{} rows={}'.format(idx2, row_group.num_rows))
+            row_count += row_group.num_rows
+    print('Total rows {}'.format(row_count))
 
 
-def main():
+def main2():
     read_s3_dask()
     file_parquet = 'airline-parq/'
     print(file_parquet)
@@ -114,14 +117,6 @@ def main():
     print(read_pafs_file(minio, 'customer-data-text/customer.csv'))
     print(read_pafs_stream(minio, 'customer-data-text/customer.csv'))
 
-    # print_parq_file_info(minio.open_input_file(
-    #     'airline-parq/airline-flights-1987.parq'))
-
-    # file_name = 'example-data/million-rows/20200814_045908_00017_xfbiq_323bd994-fabb-41ed-9462-d73467e19c9a'
-    # f = minio.open_input_file(file_name)
-    # print_parq_file_info(f)
-    # f.close()
-
     endpoint_url = 'http://10.0.0.2:9000'
     print_boto3_buckets(endpoint_url)
 
@@ -135,7 +130,7 @@ def main():
     file_system = s3fs.S3FileSystem(client_kwargs=client_kwargs)
     print(file_system.ls('example-data'))
 
-    bucket_uri = 's3://example-data/million-rows'
+    bucket_uri = 's3://example-data/external-data'
     print_parquet_pandas_shape(bucket_uri, file_system)
     print_parquet_dataset_info(bucket_uri, file_system, verbose=False)
 
@@ -144,5 +139,25 @@ def main():
     print_parquet_dataset_info(bucket_uri, file_system, verbose=False)
 
 
+def main():
+    client_kwargs = {
+        'endpoint_url': 'http://10.0.0.2:9000'
+    }
+
+    bucket_uri = 's3://example-data/external-clustered'
+    file_sys = s3fs.S3FileSystem(client_kwargs=client_kwargs)
+    files = file_sys.ls(bucket_uri)
+    row_count = 0
+    for file_name in files:
+        f = file_sys.open(file_name)
+        pq_file = pq.ParquetFile(f)
+        row_count += pq_file.metadata.num_rows
+        f.close()
+    print('{:,}'.format(row_count))
+
+
 if __name__ == '__main__':
     main()
+    import timeit
+    # print(timeit.timeit("main()", setup="from __main__ import main",
+    #       number=20))
