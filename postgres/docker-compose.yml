@@ -3,7 +3,7 @@ version: '3.1'
 
 services:
   db:
-    image: postgres:11.6
+    image: postgres:12.4
     restart: always
     environment:
       POSTGRES_PASSWORD: example
@@ -14,4 +14,4 @@ services:
     image: adminer
     restart: always
     ports:
-      - 8080:8080
+      - 8181:8080

@@ -23,6 +23,7 @@ s3fs = "*"
 boto3 = "*"
 dbt-core = "*"
 dbt-presto = "*"
+dbt-postgres = "*"
 
 [requires]
 python_version = "3.8"
