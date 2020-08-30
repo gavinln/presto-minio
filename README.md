@@ -1,4 +1,4 @@
-# presto-minio
+:set ff=uni:set ff=uni
 
 * Source code - [Github][1]
 * Author - Gavin Noronha - <gavinln@hotmail.com>
@@ -660,10 +660,16 @@ https://docs.getdbt.com/reference/warehouse-profiles/postgres-profile
 #### Run dbt
 
 1. Test the settings
+
+```
 dbt debug
+```
 
 2. Generate SQL statements
+
+```
 dbt compile
+```
 
 ### Presto DBT
 
