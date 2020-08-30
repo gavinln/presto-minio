@@ -296,7 +296,7 @@ class HiveDatabase:
         presto-hive.py hive show-table customer_text --database default
         presto-hive.py hive show-columns customer_text --database default
         presto-hive.py hive show-create-table customer_text --database default
-        presto-hive.py hive show-table-extended customer_text --database default
+        presto-hive.py hive show-able-extended customer_text --database default
         presto-hive.py hive show-tblproperties customer_text --database default
     '''
 

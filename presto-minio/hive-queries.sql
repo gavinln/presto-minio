@@ -19,10 +19,10 @@ show functions;
 show databases;
 
 -- show commands 1 or 2 parameters
-show tables like 'example';
+show tables like 'customer*';
 show tables in default;
-show tables in default like 'example';
-show table extended in default like example;
+show tables in default like 'customer*';
+show table extended in default like 'customer*';
 show create table default.example;
 show columns in default.example;
 show tblproperties default.example;

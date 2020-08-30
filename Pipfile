@@ -21,6 +21,8 @@ awscli = "*"
 pyarrow = "*"
 s3fs = "*"
 boto3 = "*"
+dbt-core = "*"
+dbt-presto = "*"
 
 [requires]
 python_version = "3.8"
