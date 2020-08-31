@@ -8,6 +8,7 @@ import types
 import datetime
 import textwrap
 import difflib
+import itertools
 
 from dataclasses import dataclass
 
@@ -28,6 +29,13 @@ from query_yes_no import query_yes_no
 
 SCRIPT_DIR = pathlib.Path(__file__).parent.resolve()
 log = logging.getLogger(__name__)
+
+
+def pairwise(iterable):
+    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
+    a, b = itertools.tee(iterable)
+    next(b, None)
+    return zip(a, b)
 
 
 def presto_execute_fetchall(server, sql):
@@ -181,6 +189,13 @@ def main():
     print(pm.catalogs('minio').schemas('default').tables('example'))
 
 
+def print_all(df):
+    with pd.option_context(
+            "display.max_rows", None,
+            "display.max_columns", None):
+        print(df)
+
+
 def get_schemas(catalog: str):
     ' get schemas for a specified catalog '
 
@@ -305,9 +320,11 @@ class HiveDatabase:
         presto-hive.py hive show-tables --database default
         presto-hive.py hive show-table customer_text --database default
         presto-hive.py hive show-columns customer_text --database default
-        presto-hive.py hive show-create-table customer_text --database default
-        presto-hive.py hive show-table-extended customer_text --database default
+        presto-hive.py hive show-create-table customer_text default
+        presto-hive.py hive show-table-extended customer_text default
         presto-hive.py hive show-tblproperties customer_text --database default
+
+        presto-hive.py hive desc-formatted customer_text --database default
     '''
 
     def show_databases(self):
@@ -444,20 +461,6 @@ class HiveDatabase:
         tables = get_hive_records_database_dot_table(sql, database, table)
         print(tables)
 
-    def desc_extended(self, table, database=None):
-        '''
-        '''
-        if database is not None:
-            database = check_hive_database(database)
-        sql = 'desc extended'
-        info = get_hive_records_database_dot_table(sql, database, table)
-        print(info)
-        # get empty line that separates
-        idx = info.index[info.col_name.str.len() == 0].values
-        info_extended = info.iloc[idx[0] + 1]
-        table_details = info_extended.data_type.split(',')
-        print('\n'.join(table_details))
-
     def show_functions(self):
         ''' list all functions
         '''
@@ -465,6 +468,44 @@ class HiveDatabase:
         functions = get_hive_records(sql)
         for idx, function in enumerate(functions.tab_name.values):
             print(idx, function)
+
+    def desc(self, table, database=None):
+        '''
+        '''
+        if database is not None:
+            database = check_hive_database(database)
+        sql = 'desc'
+        info = get_hive_records_database_dot_table(sql, database, table)
+        print(info)
+
+    def desc_formatted(self, table, database=None):
+        '''
+        '''
+        def srs_match_index(srs, match_str):
+            match_list = srs.index[srs == match_str].values
+            if len(match_list) > 0:
+                return match_list[0]
+            return -1
+
+        if database is not None:
+            database = check_hive_database(database)
+        sql = 'desc formatted'
+        info = get_hive_records_database_dot_table(sql, database, table)
+        col_names = info.col_name.str.strip()
+
+        matches = [
+            '# Detailed Table Information', 'Table Parameters:',
+            '# Storage Information', 'Storage Desc Params:'
+        ]
+        match_idx_list = [
+            srs_match_index(col_names, match) for match in matches]
+        valid_match_idx_list = [
+            match_idx for match_idx in match_idx_list if match_idx > 0]
+        all_match_idx_list = [0] + valid_match_idx_list + [col_names.size]
+        for idx, (start, stop) in enumerate(pairwise(all_match_idx_list)):
+            print('Part {}: [{}, {}]'.format(idx, start, stop))
+            # TODO: replace None by '' and remove all rows/cols with only ''
+            print(info.iloc[start:stop])
 
 
 def display_df_all(df):
