@@ -762,13 +762,17 @@ Stanford course: [Mining massive datasets][1190]
 
 ### Presto videos
 
-Using Presto with Jupyter
+* Using [Presto with Jupyter][1300]
 
-https://www.youtube.com/watch?v=67gXN5697Vw
+[1300]: https://www.youtube.com/watch?v=67gXN5697Vw
 
-Presto optimization
+* [Presto optimization][1310]
 
-https://www.youtube.com/watch?v=Z2C-iYNm2wU
+[1310]: https://www.youtube.com/watch?v=Z2C-iYNm2wU
+
+* [Data Engineering principles][1320]
+
+[1320]: https://www.youtube.com/watch?v=pzfgbSfzhXg
 
 ### Miscellaneous
 
