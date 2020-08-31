@@ -7,6 +7,7 @@ import pathlib
 import types
 import datetime
 import textwrap
+import difflib
 
 from dataclasses import dataclass
 
@@ -21,6 +22,8 @@ from rich.syntax import Syntax
 from IPython import embed
 
 import fire
+
+from query_yes_no import query_yes_no
 
 
 SCRIPT_DIR = pathlib.Path(__file__).parent.resolve()
@@ -251,12 +254,19 @@ def get_hive_databases():
 
 
 def check_hive_database(database):
-    ' raises an error if database is not a valid database '
+    ' returns valid database or None if not valid '
     databases = get_hive_databases()
     names = databases.database_name.values
-    msg = 'Database {} not valid.\nShould be one of these: {}'.format(
-        database, ', '.join(names))
-    assert database in names, msg
+    # TODO: should this be case-insensitive?
+    if database in names:
+        return database
+    close_matches = difflib.get_close_matches(database, names)
+    if len(close_matches) > 0:
+        message = 'Did you mean {}?'.format(close_matches[0])
+        response = query_yes_no(message)
+        if response:
+            return close_matches[0]
+    raise ValueError('Invalid database name {}'.format(database))
 
 
 def get_formatted_value(formatter, value):
@@ -296,7 +306,7 @@ class HiveDatabase:
         presto-hive.py hive show-table customer_text --database default
         presto-hive.py hive show-columns customer_text --database default
         presto-hive.py hive show-create-table customer_text --database default
-        presto-hive.py hive show-able-extended customer_text --database default
+        presto-hive.py hive show-table-extended customer_text --database default
         presto-hive.py hive show-tblproperties customer_text --database default
     '''
 
@@ -308,6 +318,8 @@ class HiveDatabase:
     def show_tables(self, database=None):
         ''' list all tables
         '''
+        if database is not None:
+            database = check_hive_database(database)
         sql = 'show tables'
         tables = get_hive_records_database_like_table(sql, database)
         print(tables)
@@ -315,6 +327,8 @@ class HiveDatabase:
     def show_table(self, table, database=None):
         ''' show table
         '''
+        if database is not None:
+            database = check_hive_database(database)
         sql = 'show tables'
         tables = get_hive_records_database_like_table(sql, database, table)
         print(tables)
@@ -324,7 +338,7 @@ class HiveDatabase:
             validate table
         '''
         if database is not None:
-            check_hive_database(database)
+            database = check_hive_database(database)
         sql = 'show table extended'
         table = get_hive_records_database_like_table(sql, database, table)
         # print(table)
@@ -339,7 +353,7 @@ class HiveDatabase:
             validate table
         '''
         if database is not None:
-            check_hive_database(database)
+            database = check_hive_database(database)
         sql = 'show create table'
         table = get_hive_records_database_dot_table(sql, database, table)
         lines = table.createtab_stmt.values
@@ -400,16 +414,17 @@ class HiveDatabase:
             validate table
         '''
         if database is not None:
-            check_hive_database(database)
+            database = check_hive_database(database)
         sql = 'show partitions'
         partitions = get_hive_records_database_dot_table(sql, database, table)
         print(partitions)
 
-    def show_tblproperties(self, database, table):
+    def show_tblproperties(self, table, database=None):
         '''
             validate table
         '''
-        check_hive_database(database)
+        if database is not None:
+            database = check_hive_database(database)
         sql = 'show tblproperties'
         table = get_hive_records_database_dot_table(sql, database, table)
         name_value = dataframe_to_dict(table)
@@ -419,15 +434,29 @@ class HiveDatabase:
         }
         print_name_value_dict(name_value, formatter)
 
-    def show_columns(self, database=None, table=None):
+    def show_columns(self, table, database=None):
         '''
             validate table
         '''
         if database is not None:
-            check_hive_database(database)
+            database = check_hive_database(database)
         sql = 'show columns in '
         tables = get_hive_records_database_dot_table(sql, database, table)
         print(tables)
+
+    def desc_extended(self, table, database=None):
+        '''
+        '''
+        if database is not None:
+            database = check_hive_database(database)
+        sql = 'desc extended'
+        info = get_hive_records_database_dot_table(sql, database, table)
+        print(info)
+        # get empty line that separates
+        idx = info.index[info.col_name.str.len() == 0].values
+        info_extended = info.iloc[idx[0] + 1]
+        table_details = info_extended.data_type.split(',')
+        print('\n'.join(table_details))
 
     def show_functions(self):
         ''' list all functions
