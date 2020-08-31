@@ -141,13 +141,13 @@ class PrestoMeta:
 
 def get_hive_host():
     host = '10.0.0.2'
-    # host = 'hive.liftoff.io'
+    host = 'hive.liftoff.io'
     return host
 
 
 def get_presto_host():
     host = '10.0.0.2'
-    # host = 'presto.liftoff.io'
+    host = 'presto.liftoff.io'
     return host
 
 
@@ -476,7 +476,7 @@ class HiveDatabase:
             database = check_hive_database(database)
         sql = 'desc'
         info = get_hive_records_database_dot_table(sql, database, table)
-        print(info)
+        print_all(info)
 
     def desc_formatted(self, table, database=None):
         '''
@@ -494,8 +494,9 @@ class HiveDatabase:
         col_names = info.col_name.str.strip()
 
         matches = [
-            '# Detailed Table Information', 'Table Parameters:',
-            '# Storage Information', 'Storage Desc Params:'
+            '# Partition Information', '# Detailed Table Information',
+            'Table Parameters:', '# Storage Information',
+            'Storage Desc Params:'
         ]
         match_idx_list = [
             srs_match_index(col_names, match) for match in matches]
@@ -505,7 +506,7 @@ class HiveDatabase:
         for idx, (start, stop) in enumerate(pairwise(all_match_idx_list)):
             print('Part {}: [{}, {}]'.format(idx, start, stop))
             # TODO: replace None by '' and remove all rows/cols with only ''
-            print(info.iloc[start:stop])
+            print_all(info.iloc[start:stop])
 
 
 def display_df_all(df):
