@@ -141,13 +141,13 @@ class PrestoMeta:
 
 def get_hive_host():
     host = '10.0.0.2'
-    host = 'hive.liftoff.io'
+    # host = 'hive.liftoff.io'
     return host
 
 
 def get_presto_host():
     host = '10.0.0.2'
-    host = 'presto.liftoff.io'
+    # host = 'presto.liftoff.io'
     return host
 
 
@@ -403,7 +403,8 @@ class HiveDatabase:
 
         create_stmt_list = []
         for idx, table in enumerate(tables.tab_name.values):
-            table_number_str = '{}: {} of {}'.format(table, idx, tables.shape[0])
+            table_number_str = '{}: {} of {}'.format(
+                table, idx, tables.shape[0])
             print_indent(table_number_str, 2)
 
             create_stmt = HiveDatabase._get_create_stmt(database, table)
@@ -487,6 +488,20 @@ class HiveDatabase:
                 return match_list[0]
             return -1
 
+        def remove_empty_rows(df):
+            df2 = df.replace(to_replace=[None], value=[''])
+            empty_rows = [
+                idx for idx, row in df2.iterrows(
+                    ) if row.unique().shape[0] == 1]
+            return df2.drop(axis='index', index=empty_rows)
+
+        def remove_empty_cols(df):
+            df2 = df.replace(to_replace=[None], value=[''])
+            empty_cols = [
+                col for col, row in df2.iteritems(
+                    ) if row.unique().shape[0] == 1]
+            return df2.drop(axis='columns', columns=empty_cols)
+
         if database is not None:
             database = check_hive_database(database)
         sql = 'desc formatted'
@@ -506,7 +521,8 @@ class HiveDatabase:
         for idx, (start, stop) in enumerate(pairwise(all_match_idx_list)):
             print('Part {}: [{}, {}]'.format(idx, start, stop))
             # TODO: replace None by '' and remove all rows/cols with only ''
-            print_all(info.iloc[start:stop])
+            df = info.iloc[start:stop]
+            print_all(remove_empty_rows(remove_empty_cols(df)))
 
 
 def display_df_all(df):
