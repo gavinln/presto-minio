@@ -27,6 +27,11 @@ import fire
 from query_yes_no import query_yes_no
 
 
+# Print all syntax highlighting styles
+# from pygments.styles import get_all_styles
+# print(list(get_all_styles()))
+
+
 SCRIPT_DIR = pathlib.Path(__file__).parent.resolve()
 log = logging.getLogger(__name__)
 
@@ -157,8 +162,11 @@ def get_presto_records(sql):
     # conn = presto.Connection(host=host)
     # conn = presto.Connection(host=host, port=8889)
     conn = presto.Connection(host=host, port=8080)
-    df = pd.read_sql(sql, conn)
-    return df
+    try:
+        df = pd.read_sql(sql, conn)
+        return df
+    except Exception:
+        Console().print_exception(theme='solarized-light')
 
 
 def main():
@@ -180,6 +188,7 @@ def main():
     conn.close()
     return
 
+    server = None
     pm = PrestoMeta(server)
     print(pm.catalogs())
     print(pm.catalogs('minio'))
@@ -269,7 +278,7 @@ def get_hive_databases():
 
 
 def check_hive_database(database):
-    ' returns valid database or None if not valid '
+    ' returns valid database or raises error if not valid '
     databases = get_hive_databases()
     names = databases.database_name.values
     # TODO: should this be case-insensitive?
@@ -533,6 +542,27 @@ def display_df_all(df):
         print(df)
 
 
+def get_presto_catalogs():
+    sql = 'show catalogs'
+    return get_presto_records(sql)
+
+
+def check_presto_catalogs(catalog):
+    ' returns valid catalog or raises error if not valid '
+    catalogs = get_presto_catalogs()
+    names = catalogs.Catalog.values
+    # TODO: should this be case-insensitive?
+    if catalog in names:
+        return catalog
+    close_matches = difflib.get_close_matches(catalog, names)
+    if len(close_matches) > 0:
+        message = 'Did you mean {}?'.format(close_matches[0])
+        response = query_yes_no(message)
+        if response:
+            return close_matches[0]
+    raise ValueError('Invalid catalog name {}'.format(catalog))
+
+
 class PrestoDatabase:
     ''' display meta data from a presto database
 
@@ -558,14 +588,14 @@ class PrestoDatabase:
     def show_catalogs(self):
         '''
         '''
-        sql = 'show catalogs'
-        catalogs = get_presto_records(sql)
+        catalogs = get_presto_catalogs()
         print(catalogs)
 
     def show_schemas(self, catalog):
         '''
         '''
-        sql = 'show schemas from {}'.format(catalog)
+        valid_catalog = check_presto_catalogs(catalog)
+        sql = 'show schemas from {}'.format(valid_catalog)
         catalogs = get_presto_records(sql)
         print(catalogs)
 
