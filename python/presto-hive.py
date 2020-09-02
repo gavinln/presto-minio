@@ -159,7 +159,6 @@ def get_presto_host():
 def get_presto_records(sql):
     ' runs a presto sql statement and returns result '
     host = get_presto_host()
-    # conn = presto.Connection(host=host)
     # conn = presto.Connection(host=host, port=8889)
     conn = presto.Connection(host=host, port=8080)
     try:
@@ -629,6 +628,16 @@ class PrestoDatabase:
         sql = 'show create table {}.{}.{}'.format(catalog, schema, table)
         df = get_presto_records(sql)
         create_stmt = df[['Create Table']].values[0][0]
+        print(create_stmt)
+
+    def show_create_view(self, table, schema, catalog):
+        '''
+            show create view
+        '''
+        sql = 'show create view {}.{}.{}'.format(catalog, schema, table)
+        df = get_presto_records(sql)
+        print(df)
+        create_stmt = df[['Create View']].values[0][0]
         print(create_stmt)
 
     def show_stats(self, table, schema, catalog):
