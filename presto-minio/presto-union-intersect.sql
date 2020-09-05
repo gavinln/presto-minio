@@ -174,27 +174,38 @@ show tables;
     group by rollup (tbl)
     ;
 
-/*
- * Optimize data by bucketing
- */
-
 -- 
     select grp_code, count(*)  -- 2 seconds
     from ft_million_rows
     group by 1
     ;
 
+/*
+ * Tables stored on external parquet files
+ */
+
+--
+    CREATE TABLE default.million_external
+    with (format='parquet', external_location='s3a://example-data/million-external/') as
+    select * from million_rows
+    ;
+
 -- 
-    CREATE TABLE default.external_data
-    with (format='parquet', external_location='s3a://example-data/external-data/') as
+    CREATE TABLE default.ft_million_external
+    with (format='parquet', external_location='s3a://example-data/ft-million_external/') as
     select * from ft_million_rows
     ;
 
 -- 
     select grp_code, count(*)  -- 6 seconds
-    from external_data
+    from ft_million_external
     group by 1
     ;
+
+
+/*
+ * Optimize data by bucketing (clustered)
+ */
 
 -- 
     CREATE TABLE default.external_clustered
@@ -215,7 +226,7 @@ show tables;
 -- Count for external table
     select count(*)  -- 4 seconds
     from (
-        select grp_code, avg(id) from external_data where grp_code < 200 group by grp_code
+        select grp_code, avg(id) from ft_million_external where grp_code < 200 group by grp_code
     );
 
 -- Count for clustered table
@@ -250,7 +261,7 @@ show tables;
 -- external table join timing: 1:57
     with join_all as (
         select ftm.id as f_id, mr.id as m_id
-        from external_data ftm
+        from ft_million_external ftm
             join million_rows mr on
                 ftm.grp_code = mr.grp_code
         where
