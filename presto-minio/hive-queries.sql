@@ -90,8 +90,6 @@ describe extended example;
 
 set;  -- get all configuration properties
 
-
-
 -- get table counts
     select name,
         sum(1) as id_count
@@ -99,3 +97,7 @@ set;  -- get all configuration properties
     group by 1
     ;
 
+-- compute table statistics
+    analyze table million_rows
+    compute statistics
+    ;

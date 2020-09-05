@@ -12,9 +12,6 @@ help:  ## help for this Makefile
 connect:  ## connect to gavinsvr 
 	ssh gavinsvr
 
-run:  ## run presto-api.py
-	@pipenv run python3 $(SCRIPT_DIR)/python/presto-api.py
-
 mypy:  ## mypy presto-api.py
 	@mypy --follow-imports=skip --ignore-missing-imports $(SCRIPT_DIR)/python/presto-api.py
 

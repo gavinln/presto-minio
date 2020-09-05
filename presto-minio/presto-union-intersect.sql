@@ -379,19 +379,42 @@ show tables;
     ;
 
 -- partitioned tables
-    CREATE TABLE minio.default.external_partitioned
+    CREATE TABLE minio.default.million_partitioned
     with (
         format = 'parquet',
-        external_location = 's3a://example-data/external-partitioned/',
+        external_location = 's3a://example-data/million-partitioned/',
         partitioned_by = ARRAY['grp_code']
     ) as
-    select * from minio.default.ft_million_rows
+    select * from minio.default.million_rows
     with no data
     ;
 
--- fails with message: Exceeded limit of 100 open writers for partition/buckets
--- need to load data part by part
-    insert into minio.default.external_partitioned
+    insert into minio.default.million_partitioned
     select *
-    from minio.default.ft_million_rows
+    from minio.default.million_rows
+    where (grp_code - 1)/100 = 0
+    ;
+
+    insert into minio.default.million_partitioned
+    select *
+    from minio.default.million_rows
+    where (grp_code - 1)/100 = 1
+    ;
+
+    insert into minio.default.million_partitioned
+    select *
+    from minio.default.million_rows
+    where (grp_code - 1)/100 = 2
+    ;
+
+    insert into minio.default.million_partitioned
+    select *
+    from minio.default.million_rows
+    where (grp_code - 1)/100 = 3
+    ;
+
+    insert into minio.default.million_partitioned
+    select *
+    from minio.default.million_rows
+    where (grp_code - 1)/100 = 4
     ;
