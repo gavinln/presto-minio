@@ -15,12 +15,7 @@ import difflib
 import itertools
 import os
 
-from dataclasses import dataclass
-
 import pandas as pd
-
-from pyhive import presto
-from pyhive import hive
 
 from rich.console import Console
 from rich.syntax import Syntax
@@ -30,6 +25,12 @@ from IPython import embed
 import fire
 
 from query_yes_no import query_yes_no
+from presto_hive_lib import get_presto_records
+from presto_hive_lib import get_presto_catalogs
+
+from presto_hive_lib import get_hive_records
+from presto_hive_lib import get_hive_records_database_like_table
+from presto_hive_lib import get_hive_records_database_dot_table
 
 
 # Print all syntax highlighting styles
@@ -48,119 +49,11 @@ def pairwise(iterable):
     return zip(a, b)
 
 
-def presto_execute_fetchall(server, sql):
-    cursor = presto.connect(server, port=8889).cursor()
-    cursor.execute(sql)
-    result = cursor.fetchall()
-    cursor.close()
-    return result
-
-
-@dataclass
-class PrestoTable:
-    server: str
-    name: str
-    schema_name: str
-    catalog_name: str
-
-    def _get_full_name(self):
-        full_name = '{}.{}.{}'.format(
-            self.catalog_name, self.schema_name, self.name)
-        return full_name
-
-    def desc(self):
-        conn = presto.connect(host=self.server, port=8889)
-        sql = 'desc {}'.format(self._get_full_name())
-        df = pd.read_sql_query(sql, conn)
-        return df
-
-    def stats(self):
-        conn = presto.connect(host=self.server, port=8889)
-        sql = 'show stats for {}'.format(self._get_full_name())
-        df = pd.read_sql_query(sql, conn)
-        return df
-
-    @property
-    def full_name(self):
-        return self._get_full_name()
-
-
-@dataclass
-class PrestoSchema:
-    server: str
-    name: str
-    catalog_name: str
-
-    def tables(self, name=None):
-        sql = 'show tables from {}.{}'.format(
-            self.catalog_name, self.name)
-        tables = [
-            PrestoTable(
-                self.server, table_name, self.name, self.catalog_name) for (
-                table_name,) in presto_execute_fetchall(
-                    self.server, sql)]
-        table_names = [table.name for table in tables]
-        if name is not None:
-            if name not in table_names:
-                raise ValueError(
-                    'table {} not present. Should be one of {}'.format(
-                        name, ', '.join(table_names)))
-            return [pc for pc in tables if pc.name == name][0]
-        return tables
-
-
-@dataclass
-class PrestoCatalog:
-    server: str
-    name: str
-
-    def schemas(self, name=None):
-        sql = 'show schemas from {}'.format(self.name)
-        schemas = [
-            PrestoSchema(self.server, schema_name, self.name) for (
-                schema_name,) in presto_execute_fetchall(
-                    self.server, sql)]
-        schema_names = [schema.name for schema in schemas]
-        if name is not None:
-            if name not in schema_names:
-                raise ValueError(
-                    'schema {} not present. Should be one of {}'.format(
-                        name, ', '.join(schema_names)))
-            return [pc for pc in schemas if pc.name == name][0]
-        return schemas
-
-
-@dataclass
-class PrestoMeta:
-    server: str
-
-    def catalogs(self, name=None):
-        sql = 'show catalogs'
-        catalogs = [
-            PrestoCatalog(self.server, name) for (
-                name,) in presto_execute_fetchall(self.server, sql)]
-        catalog_names = [catalog.name for catalog in catalogs]
-        if name is not None:
-            if name not in catalog_names:
-                raise ValueError(
-                    'Catalog {} not present. Should be one of {}'.format(
-                        name, ', '.join(catalog_names)))
-            return [pc for pc in catalogs if pc.name == name][0]
-        return catalogs
-
-
 def get_hive_host_port():
     host = '10.0.0.2'
     # host = 'hive.liftoff.io'
     port = 10000
     return host, port
-
-
-def get_hive_connection():
-    # hive_conn_str = check_hive_env()
-    # print(hive_conn_str)
-    host, port = get_hive_host_port()
-    return hive.Connection(host=host, port=port)
 
 
 def get_presto_host_port():
@@ -170,39 +63,6 @@ def get_presto_host_port():
     return host, port
 
 
-def get_presto_connection():
-    # presto_conn_str = check_presto_env()
-    # print(presto_conn_str)
-
-    host, port = get_presto_host_port()
-    return presto.Connection(host=host, port=port)
-
-
-def get_presto_records(sql):
-    ' runs a presto sql statement and returns result '
-    conn = get_presto_connection()
-    try:
-        df = pd.read_sql(sql, conn)
-        return df
-    except Exception:
-        Console().print_exception(theme='solarized-light')
-    return None
-
-
-def main():
-    log.info('in main')
-    return
-
-    server = None
-    pm = PrestoMeta(server)
-    print(pm.catalogs())
-    print(pm.catalogs('minio'))
-    print(pm.catalogs('minio').schemas())
-    print(pm.catalogs('minio').schemas('default'))
-    print(pm.catalogs('minio').schemas('default').tables())
-    print(pm.catalogs('minio').schemas('default').tables('example'))
-
-
 def print_all(df):
     with pd.option_context(
             "display.max_rows", None,
@@ -210,75 +70,13 @@ def print_all(df):
         print(df)
 
 
-def get_schemas(catalog: str):
-    ' get schemas for a specified catalog '
-
-    server = 'presto.liftoff.io'
-    pm = PrestoMeta(server)
-    for c in pm.catalogs():
-        if c.name == catalog:
-            schemas = c.schemas()
-            for s in schemas:
-                print(s.name)
-            return
-    print('Unknown catalog {}'.format(catalog))
-
-
-def get_catalogs():
-    ' get catalogs '
-    server = 'presto.liftoff.io'
-    pm = PrestoMeta(server)
-    for catalog in pm.catalogs():
-        print(catalog.name)
-
-
-def get_hive_list(sql):
-    conn = get_hive_connection()
-    cursor = conn.cursor()
-    cursor.execute(sql)
-    items = [items for items in cursor.fetchall()]
-    cursor.close()
-    return items
-
-
-def get_hive_records(sql):
-    ' runs a hive sql statement and returns result '
-    conn = get_hive_connection()
-    df = pd.read_sql(sql, conn)
-    return df
-
-
-def get_hive_records_database_like_table(
-        sql, database=None, table=None):
-    if database is not None:
-        sql += ' in {}'.format(database)
-    if table is not None:
-        sql += " like '{}'".format(table)
-    return get_hive_records(sql)
-
-
-def get_hive_records_database_dot_table(
-        sql, database=None, table=None):
-    if database is not None:
-        sql += ' {}.'.format(database)
-    if table is not None:
-        sql += ' ' + table
-    return get_hive_records(sql)
-
 # need a function get_hive_tbl_database_dot_table
 # for show tblproperties
 
-# fire.Fire({
-#     'catalogs': get_catalogs,
-#     'schemas': get_schemas,
-#     'hive-tables': get_hive_tables,
-#     'hive-databases': get_hive_databases
-# })
 
-
-def get_hive_databases():
+def get_hive_databases(host, port):
     sql = 'show databases'
-    return get_hive_records(sql)
+    return get_hive_records(host, port, sql)
 
 
 def check_hive_database(database):
@@ -351,7 +149,9 @@ class HiveDatabase:
         if database is not None:
             database = check_hive_database(database)
         sql = 'show tables'
-        tables = get_hive_records_database_like_table(sql, database)
+        host, port = get_hive_host_port()
+        tables = get_hive_records_database_like_table(
+            host, port, sql, database)
         print(tables)
 
     def show_table(self, table, database=None):
@@ -360,7 +160,9 @@ class HiveDatabase:
         if database is not None:
             database = check_hive_database(database)
         sql = 'show tables'
-        tables = get_hive_records_database_like_table(sql, database, table)
+        host, port = get_hive_host_port()
+        tables = get_hive_records_database_like_table(
+            host, port, sql, database, table)
         print(tables)
 
     def show_table_extended(self, table, database=None):
@@ -370,12 +172,17 @@ class HiveDatabase:
         if database is not None:
             database = check_hive_database(database)
         sql = 'show table extended'
-        table = get_hive_records_database_like_table(sql, database, table)
-        if table is not None:
+        host, port = get_hive_host_port()
+        df = get_hive_records_database_like_table(
+            host, port, sql, database, table)
+        if df.size == 0:
+            print('table {} not found'.format(table))
+        else:
             name_value = {}
-            for items in table.tab_name.str.split(':').values:
+            for items in df.tab_name.str.split(':').values:
                 if len(items[0]) > 0:
                     name_value[items[0]] = ':'.join(items[1:])
+            print(pd.Series(name_value))
 
     def show_create_table(self, table, database=None):
         '''
@@ -407,7 +214,9 @@ class HiveDatabase:
             print(textwrap.indent(text, indent_str * indent_level))
 
         sql = 'show tables'
-        tables = get_hive_records_database_like_table(sql, database)
+        host, port = get_hive_host_port()
+        tables = get_hive_records_database_like_table(
+            host, port, sql, database)
 
         table_count_str = 'Database {} has {} tables'.format(
             database, tables.shape[0])
@@ -478,7 +287,8 @@ class HiveDatabase:
         ''' list all functions
         '''
         sql = 'show functions'
-        functions = get_hive_records(sql)
+        host, port = get_hive_host_port()
+        functions = get_hive_records(host, port, sql)
         for idx, function in enumerate(functions.tab_name.values):
             print(idx, function)
 
@@ -545,14 +355,10 @@ def display_df_all(df):
         print(df)
 
 
-def get_presto_catalogs():
-    sql = 'show catalogs'
-    return get_presto_records(sql)
-
-
 def check_presto_catalogs(catalog):
     ' returns valid catalog or raises error if not valid '
-    catalogs = get_presto_catalogs()
+    host, port = get_presto_host_port()
+    catalogs = get_presto_catalogs(host, port)
     names = catalogs.Catalog.values
     # TODO: should this be case-insensitive?
     if catalog in names:
@@ -605,7 +411,8 @@ class PrestoDatabase:
     def show_catalogs(self):
         '''
         '''
-        catalogs = get_presto_catalogs()
+        host, port = get_presto_host_port()
+        catalogs = get_presto_catalogs(host, port)
         print(catalogs)
 
     def show_schemas(self, catalog):
@@ -613,14 +420,16 @@ class PrestoDatabase:
         '''
         valid_catalog = check_presto_catalogs(catalog)
         sql = 'show schemas from {}'.format(valid_catalog)
-        catalogs = get_presto_records(sql)
+        host, port = get_presto_host_port()
+        catalogs = get_presto_records(host, port, sql)
         print(catalogs)
 
     def show_tables(self, schema, catalog):
         '''
         '''
         sql = 'show tables from {}.{}'.format(catalog, schema)
-        catalogs = get_presto_records(sql)
+        host, port = get_presto_host_port()
+        catalogs = get_presto_records(host, port, sql)
         print(catalogs)
 
     def show_table(self, table, schema, catalog):
@@ -628,7 +437,8 @@ class PrestoDatabase:
         '''
         sql = "show tables from {}.{} like '{}'".format(
             catalog, schema, table)
-        tables = get_presto_records(sql)
+        host, port = get_presto_host_port()
+        tables = get_presto_records(host, port, sql)
         print(tables)
 
     def show_columns(self, table, schema, catalog):
@@ -636,7 +446,8 @@ class PrestoDatabase:
         '''
         sql = "show columns from {}.{}.{}".format(
             catalog, schema, table)
-        columns = get_presto_records(sql)
+        host, port = get_presto_host_port()
+        columns = get_presto_records(host, port, sql)
         print(columns)
 
     def show_create_table(self, table, schema, catalog):
@@ -644,7 +455,8 @@ class PrestoDatabase:
             show create table
         '''
         sql = 'show create table {}.{}.{}'.format(catalog, schema, table)
-        df = get_presto_records(sql)
+        host, port = get_presto_host_port()
+        df = get_presto_records(host, port, sql)
         create_stmt = df[['Create Table']].values[0][0]
         print(create_stmt)
 
@@ -653,7 +465,8 @@ class PrestoDatabase:
             show create view
         '''
         sql = 'show create view {}.{}.{}'.format(catalog, schema, table)
-        df = get_presto_records(sql)
+        host, port = get_presto_host_port()
+        df = get_presto_records(host, port, sql)
         print(df)
         create_stmt = df[['Create View']].values[0][0]
         print(create_stmt)
@@ -662,7 +475,8 @@ class PrestoDatabase:
         '''
         '''
         sql = 'show stats for {}.{}.{}'.format(catalog, schema, table)
-        catalogs = get_presto_records(sql)
+        host, port = get_presto_host_port()
+        catalogs = get_presto_records(host, port, sql)
         print(catalogs)
 
     def _desc_table(self, table, schema):
@@ -670,7 +484,8 @@ class PrestoDatabase:
             describe table from hive
         '''
         sql = 'describe hive.{}.{}'.format(schema, table)
-        df = get_presto_records(sql)
+        host, port = get_presto_host_port()
+        df = get_presto_records(host, port, sql)
         print(df)
 
     def _desc_tables(self):
@@ -678,7 +493,8 @@ class PrestoDatabase:
             describe all tables from hive.flat_rtb
         '''
         sql = 'show tables from hive.flat_rtb'
-        tables = get_presto_records(sql)
+        host, port = get_presto_host_port()
+        tables = get_presto_records(host, port, sql)
         if tables is None:
             return
 
@@ -687,7 +503,8 @@ class PrestoDatabase:
         for idx, table in enumerate(tables.Table.values):
             print(table)
             sql = 'describe hive.flat_rtb.{}'.format(table)
-            df = get_presto_records(sql)
+            host, port = get_presto_host_port()
+            df = get_presto_records(host, port, sql)
             column_count += df.shape[0]
             df_list.append(df)
             if idx > 100:
@@ -711,6 +528,5 @@ class Databases:
 
 if __name__ == '__main__':
     # https://github.com/willmcgugan/rich
-    # main()
     logging.basicConfig(level=logging.WARN)
     fire.Fire(Databases)
