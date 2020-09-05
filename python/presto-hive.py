@@ -1,5 +1,9 @@
 '''
 Display Presto and Hive metadata
+
+DBM_PRESTO=localhost:8080
+DBM_HIVE=10.0.0.2:10000
+DBM_THEME=light
 '''
 
 import logging
@@ -9,6 +13,7 @@ import datetime
 import textwrap
 import difflib
 import itertools
+import os
 
 from dataclasses import dataclass
 
@@ -144,47 +149,48 @@ class PrestoMeta:
         return catalogs
 
 
-def get_hive_host():
+def get_hive_host_port():
     host = '10.0.0.2'
     # host = 'hive.liftoff.io'
-    return host
+    port = 10000
+    return host, port
 
 
-def get_presto_host():
+def get_hive_connection():
+    # hive_conn_str = check_hive_env()
+    # print(hive_conn_str)
+    host, port = get_hive_host_port()
+    return hive.Connection(host=host, port=port)
+
+
+def get_presto_host_port():
     host = '10.0.0.2'
     # host = 'presto.liftoff.io'
-    return host
+    port = 8080
+    return host, port
+
+
+def get_presto_connection():
+    # presto_conn_str = check_presto_env()
+    # print(presto_conn_str)
+
+    host, port = get_presto_host_port()
+    return presto.Connection(host=host, port=port)
 
 
 def get_presto_records(sql):
     ' runs a presto sql statement and returns result '
-    host = get_presto_host()
-    # conn = presto.Connection(host=host, port=8889)
-    conn = presto.Connection(host=host, port=8080)
+    conn = get_presto_connection()
     try:
         df = pd.read_sql(sql, conn)
         return df
     except Exception:
         Console().print_exception(theme='solarized-light')
+    return None
 
 
 def main():
-    log_pyhive = logging.getLogger('pyhive.presto')
-    log_pyhive.setLevel(logging.WARN)
-
     log.info('in main')
-
-    host = get_hive_host()
-
-    conn = hive.Connection(host=host)
-    cursor = conn.cursor()
-    cursor.execute("select * from example")
-    for result in cursor.fetchall():
-        print(result)
-
-    df = pd.read_sql("select * from example", conn)
-    print(df)
-    conn.close()
     return
 
     server = None
@@ -227,8 +233,8 @@ def get_catalogs():
 
 
 def get_hive_list(sql):
-    host = get_hive_host()
-    cursor = hive.connect(host=host).cursor()
+    conn = get_hive_connection()
+    cursor = conn.cursor()
     cursor.execute(sql)
     items = [items for items in cursor.fetchall()]
     cursor.close()
@@ -237,8 +243,7 @@ def get_hive_list(sql):
 
 def get_hive_records(sql):
     ' runs a hive sql statement and returns result '
-    host = get_hive_host()
-    conn = hive.Connection(host=host)
+    conn = get_hive_connection()
     df = pd.read_sql(sql, conn)
     return df
 
@@ -366,12 +371,11 @@ class HiveDatabase:
             database = check_hive_database(database)
         sql = 'show table extended'
         table = get_hive_records_database_like_table(sql, database, table)
-        # print(table)
-        name_value = {}
-        for items in table.tab_name.str.split(':').values:
-            if len(items[0]) > 0:
-                name_value[items[0]] = ':'.join(items[1:])
-        print_name_value_dict(name_value)
+        if table is not None:
+            name_value = {}
+            for items in table.tab_name.str.split(':').values:
+                if len(items[0]) > 0:
+                    name_value[items[0]] = ':'.join(items[1:])
 
     def show_create_table(self, table, database=None):
         '''
@@ -562,6 +566,20 @@ def check_presto_catalogs(catalog):
     raise ValueError('Invalid catalog name {}'.format(catalog))
 
 
+def check_presto_env():
+    presto_env = 'DBM_PRESTO'
+    if presto_env not in os.environ:
+        raise ValueError('missing environment variable {}'.format(presto_env))
+    return os.environ[presto_env]
+
+
+def check_hive_env():
+    hive_env = 'DBM_HIVE'
+    if hive_env not in os.environ:
+        raise ValueError('missing environment variable {}'.format(hive_env))
+    return os.environ[hive_env]
+
+
 class PrestoDatabase:
     ''' display meta data from a presto database
 
@@ -661,6 +679,9 @@ class PrestoDatabase:
         '''
         sql = 'show tables from hive.flat_rtb'
         tables = get_presto_records(sql)
+        if tables is None:
+            return
+
         df_list = []
         column_count = 0
         for idx, table in enumerate(tables.Table.values):
