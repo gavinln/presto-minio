@@ -24,6 +24,8 @@ boto3 = "*"
 dbt-core = "*"
 dbt-presto = "*"
 dbt-postgres = "*"
+python-language-server = "*"
+pytype = "*"
 
 [requires]
 python_version = "3.8"
