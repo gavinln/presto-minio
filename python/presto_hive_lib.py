@@ -70,6 +70,16 @@ def get_hive_list(host, port, sql):
     return items
 
 
+def get_hive_table_extended(host, port, table, database=None):
+    sql = 'show table extended'
+    df = get_hive_records_database_like_table(
+        host, port, sql, database, table)
+    sql = 'show table extended'
+    df = get_hive_records_database_like_table(
+        host, port, sql, database, table)
+    return df
+
+
 def presto_execute_fetchall(server, sql):
     cursor = presto.connect(server, port=8889).cursor()
     cursor.execute(sql)

@@ -31,6 +31,7 @@ from presto_hive_lib import get_presto_catalogs
 from presto_hive_lib import get_hive_records
 from presto_hive_lib import get_hive_records_database_like_table
 from presto_hive_lib import get_hive_records_database_dot_table
+from presto_hive_lib import get_hive_table_extended
 
 
 # Print all syntax highlighting styles
@@ -171,10 +172,8 @@ class HiveDatabase:
         '''
         if database is not None:
             database = check_hive_database(database)
-        sql = 'show table extended'
         host, port = get_hive_host_port()
-        df = get_hive_records_database_like_table(
-            host, port, sql, database, table)
+        df = get_hive_table_extended(host, port, table, database)
         if df.size == 0:
             print('table {} not found'.format(table))
         else:
