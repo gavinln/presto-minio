@@ -184,16 +184,28 @@ show tables;
  * Tables stored on external parquet files
  */
 
---
-    CREATE TABLE default.million_external
-    with (format='parquet', external_location='s3a://example-data/million-external/') as
-    select * from million_rows
+-- External table with a million rows using int64
+    CREATE TABLE minio.default.million_external
+    with (format='parquet', external_location='s3a://example-data/million_external/') as
+    select * from minio.default.million_rows
     ;
 
--- 
+-- External table with fifty million rows using int64
     CREATE TABLE default.ft_million_external
-    with (format='parquet', external_location='s3a://example-data/ft-million_external/') as
+    with (format='parquet', external_location='s3a://example-data/ft_million_external/') as
     select * from ft_million_rows
+    ;
+
+-- External table with fifty million rows using int32
+    CREATE TABLE default.ft_million_external_typed
+    with (format='parquet', external_location='s3a://example-data/ft_million_external_typed/') as
+    select cast(id as int) id, cast(grp_code as int) grp_code from ft_million_rows
+    ;
+
+-- Fails with out of range for external table with million rows using int8
+    CREATE TABLE default.million_external_typed_tiny
+    with (format='parquet', external_location='s3a://example-data/million_external_typed_tiny/') as
+    select cast(id as tinyint) id, cast(grp_code as tinyint) grp_code from million_rows
     ;
 
 -- 
