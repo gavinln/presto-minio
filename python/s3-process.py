@@ -103,10 +103,6 @@ def print_parquet_dataset_info(bucket_uri, file_system, verbose=False):
 
 
 def main2():
-    read_s3_dask()
-    file_parquet = 'airline-parq/'
-    print(file_parquet)
-
     # By default, MinIO will listen for unencrypted HTTP traffic.
     minio = fs.S3FileSystem(scheme="http", endpoint_override="10.0.0.2:9000")
 
@@ -158,6 +154,6 @@ def main():
 
 if __name__ == '__main__':
     main()
-    import timeit
+    # import timeit
     # print(timeit.timeit("main()", setup="from __main__ import main",
     #       number=20))
