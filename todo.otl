@@ -33,3 +33,26 @@
 	[_] Using S3FS
 	https://github.com/awslabs/aws-data-wrangler
 
+[_] Clean up presto_hive.py 2020-09-05
+	[_] Move reusable functions to presto_hive_lib.py
+	[_] Support environment variables for presto/hive conenctions
+	: DBM - dbmeta.py
+		DBM_PRESTO
+		DBM_HIVE
+	
+[_] Use smallest Presto data type 2020-09-05
+	[X] Create file called presto-efficient-memory.py
+	[_] Get all Presto data types from documentation
+	[_] Get size of each Presto data type
+	[_] Get max, min from table
+	[_] Create view with smallest data type from table
+
+
+[X] Sqlalchemy
+	[X] Connect to Presto
+	[X] Select from table
+	[X] Create table
+	[X] Insert into newly created table
+
+[_] Remove HDFS port 8020 from presto-minio
+	Difficult to connect to hdfs

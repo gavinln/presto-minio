@@ -24,6 +24,10 @@ from IPython import embed
 
 import fire
 
+import sqlalchemy as sa
+from sqlalchemy import MetaData
+from sqlalchemy.schema import Table
+
 from query_yes_no import query_yes_no
 from presto_hive_lib import get_presto_records
 from presto_hive_lib import get_presto_catalogs
@@ -32,6 +36,8 @@ from presto_hive_lib import get_hive_records
 from presto_hive_lib import get_hive_records_database_like_table
 from presto_hive_lib import get_hive_records_database_dot_table
 from presto_hive_lib import get_hive_table_extended
+
+from presto_hive_lib import timed
 
 
 # Print all syntax highlighting styles
@@ -82,7 +88,8 @@ def get_hive_databases(host, port):
 
 def check_hive_database(database):
     ' returns valid database or raises error if not valid '
-    databases = get_hive_databases()
+    host, port = get_hive_host_port()
+    databases = get_hive_databases(host, port)
     names = databases.database_name.values
     # TODO: should this be case-insensitive?
     if database in names:
@@ -190,7 +197,9 @@ class HiveDatabase:
         if database is not None:
             database = check_hive_database(database)
         sql = 'show create table'
-        table = get_hive_records_database_dot_table(sql, database, table)
+        host, port = get_hive_host_port()
+        table = get_hive_records_database_dot_table(
+            host, port, sql, database, table)
         lines = table.createtab_stmt.values
         console = Console()
         # print('\n'.join(lines))
@@ -200,7 +209,9 @@ class HiveDatabase:
     @staticmethod
     def _get_create_stmt(database, table):
         sql = 'show create table'
-        table = get_hive_records_database_dot_table(sql, database, table)
+        host, port = get_hive_host_port()
+        table = get_hive_records_database_dot_table(
+            host, port, sql, database, table)
         lines = table.createtab_stmt.values
         create_stmt = '\n'.join(lines)
         return create_stmt
@@ -519,10 +530,103 @@ class PrestoDatabase:
         # embed()
 
 
+def print_sa_table_rows(table, nrows):
+    ' prints nrows rows from table '
+    stmt = table.select().limit(nrows)
+    results = stmt.execute().fetchall()
+    for result in results:
+        print(result)
+
+
+def create_new_table(metadata, table, new_table):
+    ' create new table with data from table '
+    assert metadata.is_bound(), 'Metadata is not bound'
+    table = Table(table, metadata, autoload=True)
+    new_table = Table(new_table, metadata)
+    for column in table.columns:
+        print(column.name, column.type)
+        new_table.append_column(sa.Column(column.name, column.type))
+
+    # create a new table
+    new_table.create()
+
+    # insert data from old table
+    stmt = new_table.insert().from_select(table.columns, select=table.select())
+    stmt.execute()
+
+
+def print_sa_table_names(host, port, catalog, schema):
+    conn_str = f'presto://{host}:{port}/{catalog}/{schema}'
+    engine = sa.create_engine(conn_str)
+    metadata = MetaData(bind=engine)
+    tables = metadata.bind.table_names()
+    print(textwrap.indent('\n'.join(tables), prefix='\t'))
+
+
+def get_sa_table(host, port, catalog, schema, table):
+    ' get sqlalchemy presto table '
+    conn_str = f'presto://{host}:{port}/{catalog}/{schema}'
+    engine = sa.create_engine(conn_str)
+    metadata = MetaData(bind=engine)
+    table = Table(table, metadata, autoload=True)
+    return table
+
+
+def get_sa_table_int_min_max(table):
+    ' get min, max values for int columns for a sqlalchemy table '
+
+    col_types = (sa.types.SmallInteger, sa.types.Integer, sa.types.BigInteger)
+
+    queries = []
+    for idx, column in enumerate(table.columns):
+        query = sa.select(
+            [sa.literal(column.name),
+             sa.func.min(column), sa.func.max(column)])
+        if isinstance(column.type, col_types):
+            queries.append(query)
+    if len(queries) > 0:
+        return list(sa.union(*queries).execute())
+    return []
+
+
+class TempOperations:
+    ''' temp operations
+    '''
+    def min_max_type(self):
+        ''' sqlalchemy to min and max of Presto columns by type
+        '''
+        host, port = get_presto_host_port()
+        table_name = 'multi_types'
+        table = get_sa_table(host, port, 'minio', 'default', table_name)
+        print(f'Table {table_name}')
+        print(get_sa_table_int_min_max(table))
+
+    def sqlalchemy(self):
+        ''' sqlalchemy with Presto example
+        '''
+        host, port = get_presto_host_port()
+        catalog = 'minio'
+        schema = 'default'
+        print_sa_table_names(host, port, catalog, schema)
+
+        nrows = 3
+
+        with timed():
+            table_name = 'million_rows'
+            table = get_sa_table(host, port, catalog, schema, table_name)
+            print_sa_table_rows(table, nrows)
+
+        # create_new_table(metadata, 'million_rows', 'million_rows_v3')
+
+        with timed():
+            table_name = 'million_rows_v3'
+
+
 class Databases:
     def __init__(self):
         self.hive = HiveDatabase()
         self.presto = PrestoDatabase()
+        self.temp = TempOperations()
 
 
 if __name__ == '__main__':

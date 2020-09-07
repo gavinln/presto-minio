@@ -9,9 +9,6 @@ Also compare using int64 with int32 column types
 import logging
 import pathlib
 import sys
-from contextlib import contextmanager
-from time import time
-from datetime import datetime as dt
 
 from pyhive import hive
 
@@ -22,22 +19,11 @@ import s3fs
 from presto_hive_lib import get_presto_records
 from presto_hive_lib import get_hive_table_extended
 
+from presto_hive_lib import timed
+
 
 SCRIPT_DIR = pathlib.Path(__file__).parent.resolve()
 log = logging.getLogger(__name__)
-
-
-@contextmanager
-def timed():
-    'Simple timer context manager, implemented using a generator function'
-    start = time()
-    print("Starting at {:%H:%M:%S}".format(dt.fromtimestamp(start)))
-
-    yield
-
-    end = time()
-    print("Ending at {:%H:%M:%S} (total: {:.2f} seconds)".format(
-        dt.fromtimestamp(end), end - start))
 
 
 def get_hive_host_port():

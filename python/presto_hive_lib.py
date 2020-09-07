@@ -1,6 +1,10 @@
 '''
 library of functions to get data from Presto and Hive
 '''
+from contextlib import contextmanager
+from time import time
+from datetime import datetime as dt
+
 from pyhive import presto
 from pyhive import hive
 
@@ -86,6 +90,19 @@ def presto_execute_fetchall(server, sql):
     result = cursor.fetchall()
     cursor.close()
     return result
+
+
+@contextmanager
+def timed():
+    'Simple timer context manager, implemented using a generator function'
+    start = time()
+    print("===== Start {:%H:%M:%S}".format(dt.fromtimestamp(start)))
+
+    yield
+
+    end = time()
+    print("===== End   {:%H:%M:%S} (total: {:.2f} seconds)".format(
+        dt.fromtimestamp(end), end - start))
 
 
 @dataclass
