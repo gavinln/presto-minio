@@ -14,19 +14,14 @@ import textwrap
 import difflib
 import itertools
 import os
+import sys
 
 import pandas as pd
 
 from rich.console import Console
 from rich.syntax import Syntax
 
-from IPython import embed
-
 import fire
-
-import sqlalchemy as sa
-from sqlalchemy import MetaData
-from sqlalchemy.schema import Table
 
 from query_yes_no import query_yes_no
 from presto_hive_lib import get_presto_records
@@ -37,7 +32,13 @@ from presto_hive_lib import get_hive_records_database_like_table
 from presto_hive_lib import get_hive_records_database_dot_table
 from presto_hive_lib import get_hive_table_extended
 
-from presto_hive_lib import timed
+from presto_hive_lib import get_sa_table
+from presto_hive_lib import get_sa_new_table
+from presto_hive_lib import get_sa_metadata
+from presto_hive_lib import create_sa_table_from_table
+from presto_hive_lib import print_sa_table
+
+from IPython import embed
 
 
 # Print all syntax highlighting styles
@@ -148,7 +149,8 @@ class HiveDatabase:
 
     def show_databases(self):
         ' list all databases '
-        databases = get_hive_databases()
+        host, port = get_hive_host_port()
+        databases = get_hive_databases(host, port)
         print(databases)
 
     def show_tables(self, database=None):
@@ -252,7 +254,8 @@ class HiveDatabase:
         database ben has 292 tables
         database temp has 111 tables
         '''
-        databases = get_hive_databases()
+        host, port = get_hive_host_port()
+        databases = get_hive_databases(host, port)
         for idx, database in enumerate(databases.database_name.values):
             print('\nDATABASE {}: {} of {} databases'.format(
                 database, idx, databases.shape[0]))
@@ -265,7 +268,9 @@ class HiveDatabase:
         if database is not None:
             database = check_hive_database(database)
         sql = 'show partitions'
-        partitions = get_hive_records_database_dot_table(sql, database, table)
+        host, port = get_hive_host_port()
+        partitions = get_hive_records_database_dot_table(
+            host, port, sql, database, table)
         print(partitions)
 
     def show_tblproperties(self, table, database=None):
@@ -275,7 +280,9 @@ class HiveDatabase:
         if database is not None:
             database = check_hive_database(database)
         sql = 'show tblproperties'
-        table = get_hive_records_database_dot_table(sql, database, table)
+        host, port = get_hive_host_port()
+        table = get_hive_records_database_dot_table(
+            host, port, sql, database, table)
         name_value = dataframe_to_dict(table)
         formatter = {
             'transient_lastDdlTime':
@@ -290,7 +297,9 @@ class HiveDatabase:
         if database is not None:
             database = check_hive_database(database)
         sql = 'show columns in '
-        tables = get_hive_records_database_dot_table(sql, database, table)
+        host, port = get_hive_host_port()
+        tables = get_hive_records_database_dot_table(
+            host, port, sql, database, table)
         print(tables)
 
     def show_functions(self):
@@ -308,7 +317,9 @@ class HiveDatabase:
         if database is not None:
             database = check_hive_database(database)
         sql = 'desc'
-        info = get_hive_records_database_dot_table(sql, database, table)
+        host, port = get_hive_host_port()
+        info = get_hive_records_database_dot_table(
+            host, port, sql, database, table)
         print_all(info)
 
     def desc_formatted(self, table, database=None):
@@ -527,106 +538,72 @@ class PrestoDatabase:
         print(
             'max comment length {}'.format(
                 all_tables.Comment.str.len().max()))
-        # embed()
 
 
-def print_sa_table_rows(table, nrows):
-    ' prints nrows rows from table '
-    stmt = table.select().limit(nrows)
-    results = stmt.execute().fetchall()
-    for result in results:
-        print(result)
+def check_copy_presto_table(host, port, catalog, schema, old_table, new_table):
+    metadata = get_sa_metadata(host, port, catalog, schema)
+    table_names = metadata.bind.table_names()
+    if old_table not in table_names:
+        sys.exit('Old table {} does not exist'.format(old_table))
+
+    if new_table in table_names:
+        sys.exit('New table {} should not exist'.format(new_table))
+
+    return metadata
 
 
-def create_new_table(metadata, table, new_table):
-    ' create new table with data from table '
-    assert metadata.is_bound(), 'Metadata is not bound'
-    table = Table(table, metadata, autoload=True)
-    new_table = Table(new_table, metadata)
-    for column in table.columns:
-        print(column.name, column.type)
-        new_table.append_column(sa.Column(column.name, column.type))
-
-    # create a new table
-    new_table.create()
-
-    # insert data from old table
-    stmt = new_table.insert().from_select(table.columns, select=table.select())
-    stmt.execute()
-
-
-def print_sa_table_names(host, port, catalog, schema):
-    conn_str = f'presto://{host}:{port}/{catalog}/{schema}'
-    engine = sa.create_engine(conn_str)
-    metadata = MetaData(bind=engine)
-    tables = metadata.bind.table_names()
-    print(textwrap.indent('\n'.join(tables), prefix='\t'))
-
-
-def get_sa_table(host, port, catalog, schema, table):
-    ' get sqlalchemy presto table '
-    conn_str = f'presto://{host}:{port}/{catalog}/{schema}'
-    engine = sa.create_engine(conn_str)
-    metadata = MetaData(bind=engine)
-    table = Table(table, metadata, autoload=True)
-    return table
-
-
-def get_sa_table_int_min_max(table):
-    ' get min, max values for int columns for a sqlalchemy table '
-
-    col_types = (sa.types.SmallInteger, sa.types.Integer, sa.types.BigInteger)
-
-    queries = []
-    for idx, column in enumerate(table.columns):
-        query = sa.select(
-            [sa.literal(column.name),
-             sa.func.min(column), sa.func.max(column)])
-        if isinstance(column.type, col_types):
-            queries.append(query)
-    if len(queries) > 0:
-        return list(sa.union(*queries).execute())
-    return []
-
-
-class TempOperations:
-    ''' temp operations
+class OpDatabase:
+    ''' miscellaneous database operations
     '''
-    def min_max_type(self):
-        ''' sqlalchemy to min and max of Presto columns by type
-        '''
-        host, port = get_presto_host_port()
-        table_name = 'multi_types'
-        table = get_sa_table(host, port, 'minio', 'default', table_name)
-        print(f'Table {table_name}')
-        print(get_sa_table_int_min_max(table))
 
-    def sqlalchemy(self):
-        ''' sqlalchemy with Presto example
-        '''
+    def copy_presto_table(self, old_table, new_table):
+        """ copy a Presto table into a new table with the same types
+
+            old_table should exist
+            new_table should not exist
+        """
         host, port = get_presto_host_port()
         catalog = 'minio'
         schema = 'default'
-        print_sa_table_names(host, port, catalog, schema)
+        metadata = check_copy_presto_table(
+            host, port, catalog, schema, old_table, new_table)
 
-        nrows = 3
+        old_sa_table = get_sa_table(metadata, old_table)
+        print_sa_table(old_sa_table)
 
-        with timed():
-            table_name = 'million_rows'
-            table = get_sa_table(host, port, catalog, schema, table_name)
-            print_sa_table_rows(table, nrows)
+        embed()
+        return
 
-        # create_new_table(metadata, 'million_rows', 'million_rows_v3')
+        new_sa_table = get_sa_new_table(metadata, old_table, new_table)
+        create_sa_table_from_table(new_sa_table, old_sa_table)
+        print_sa_table(new_sa_table)
 
-        with timed():
-            table_name = 'million_rows_v3'
+    def copy_presto_table_compact(self, old_table, new_table):
+        """ copy a Presto table into a new table with compact types
+
+            old_table should exist
+            new_table should not exist
+        """
+        host, port = get_presto_host_port()
+        catalog = 'minio'
+        schema = 'default'
+        metadata = check_copy_presto_table(
+            host, port, catalog, schema, old_table, new_table)
+
+        old_sa_table = get_sa_table(metadata, old_table)
+        print_sa_table(old_sa_table)
+
+        new_sa_table = get_sa_new_table(
+            metadata, old_table, new_table, smallest_int_types=True)
+        create_sa_table_from_table(new_sa_table, old_sa_table)
+        print_sa_table(new_sa_table)
 
 
 class Databases:
     def __init__(self):
         self.hive = HiveDatabase()
         self.presto = PrestoDatabase()
-        self.temp = TempOperations()
+        self.op = OpDatabase()
 
 
 if __name__ == '__main__':
