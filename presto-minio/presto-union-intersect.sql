@@ -447,7 +447,7 @@ show tables;
     select *
     from (
         values
-            (true, cast(1 as tinyint), cast(2 as smallint), cast(3 as integer),
-             cast(4 as bigint), cast(5 as real), cast(6 as double), 'abc')
+            (true, cast(1 as tinyint), cast(200 as smallint), cast(300000 as integer),
+             cast(4000000000 as bigint), cast(5 as real), cast(6 as double), 'abc')
     ) as x(boolean_t, tinyint_t, smallint_t, integer_t, bigint_t, real_t, double_t, varchar_t)
     ;
