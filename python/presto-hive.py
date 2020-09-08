@@ -24,6 +24,7 @@ from rich.syntax import Syntax
 import fire
 
 import pyarrow.parquet as pq
+from pyarrow import fs
 import s3fs
 
 from query_yes_no import query_yes_no
@@ -66,16 +67,21 @@ def pairwise(iterable):
 
 def get_hive_host_port():
     host = '10.0.0.2'
-    # host = 'hive.liftoff.io'
+    host = 'hive.liftoff.io'
     port = 10000
     return host, port
 
 
 def get_presto_host_port():
     host = '10.0.0.2'
-    # host = 'presto.liftoff.io'
+    host = 'presto.liftoff.io'
     port = 8080
+    port = 8889
     return host, port
+
+
+def get_presto_catalog_schema():
+    return 'hive', 'temp'
 
 
 def print_all(df):
@@ -169,7 +175,7 @@ class HiveDatabase:
         host, port = get_hive_host_port()
         tables = get_hive_records_database_like_table(
             host, port, sql, database)
-        print(tables)
+        print_all(tables)
 
     def show_table(self, table, database=None):
         ''' show table
@@ -393,14 +399,19 @@ class HiveDatabase:
             database = check_hive_database(database)
         host, port = get_hive_host_port()
         client_kwargs = {'endpoint_url': 'http://10.0.0.2:9000'}
+        client_kwargs = {}
         table_location = get_hive_table_location(host, port, table, database)
+        print('hive table {}, location {}'.format(table, table_location))
         if table_location:
             if table_location.startswith('s3'):
                 with timed():
-                    file_system = s3fs.S3FileSystem(
-                        client_kwargs=client_kwargs)
+                    # file_system = s3fs.S3FileSystem(
+                    #     client_kwargs=client_kwargs)
+                    file_system = s3fs.S3FileSystem()
+                    locations = file_system.ls(table_location)
+                    file_locations = [loc for loc in locations if not loc.endswith('/')]
                     dataset = pq.ParquetDataset(
-                        table_location, filesystem=file_system)
+                        file_locations, filesystem=file_system)
                     parq_file_name = '{}.parq'.format(table)
                     parq_table = dataset.read()
                     pq.write_table(parq_table, parq_file_name)
@@ -496,7 +507,7 @@ class PrestoDatabase:
         sql = 'show tables from {}.{}'.format(catalog, schema)
         host, port = get_presto_host_port()
         catalogs = get_presto_records(host, port, sql)
-        print(catalogs)
+        print_all(catalogs)
 
     def show_table(self, table, schema, catalog):
         '''
@@ -608,16 +619,12 @@ class OpDatabase:
             new_table should not exist
         """
         host, port = get_presto_host_port()
-        catalog = 'minio'
-        schema = 'default'
+        catalog, schema = get_presto_catalog_schema()
         metadata = check_copy_presto_table(
             host, port, catalog, schema, old_table, new_table)
 
         old_sa_table = get_sa_table(metadata, old_table)
         print_sa_table(old_sa_table)
-
-        embed()
-        return
 
         new_sa_table = get_sa_new_table(metadata, old_table, new_table)
         create_sa_table_from_table(new_sa_table, old_sa_table)
@@ -630,8 +637,7 @@ class OpDatabase:
             new_table should not exist
         """
         host, port = get_presto_host_port()
-        catalog = 'minio'
-        schema = 'default'
+        catalog, schema = get_presto_catalog_schema()
         metadata = check_copy_presto_table(
             host, port, catalog, schema, old_table, new_table)
 

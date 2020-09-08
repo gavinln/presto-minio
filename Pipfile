@@ -19,7 +19,6 @@ fire = "*"
 rich = "*"
 awscli = "*"
 pyarrow = "*"
-s3fs = "*"
 boto3 = "*"
 dbt-core = "*"
 dbt-presto = "*"
@@ -27,6 +26,10 @@ dbt-postgres = "*"
 python-language-server = "*"
 pytype = "*"
 sqlalchemy = "*"
+s3fs = "*"
 
 [requires]
 python_version = "3.8"
+
+[pipenv]
+allow_prereleases = true
