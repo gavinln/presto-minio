@@ -17,10 +17,9 @@ import pyarrow.parquet as pq
 import s3fs
 
 from presto_hive_lib import get_presto_records
-from presto_hive_lib import get_hive_table_extended
+from presto_hive_lib import get_hive_table_location
 
 from presto_hive_lib import timed
-
 
 SCRIPT_DIR = pathlib.Path(__file__).parent.resolve()
 log = logging.getLogger(__name__)
@@ -51,30 +50,12 @@ def get_presto_host_port():
 #     'hive-tables': get_hive_tables,
 #     'hive-databases': get_hive_databases
 # })
-
-
 '''
 create table minio.default.million_rows_v as
 select cast(id as int) id, cast(grp_code as int) grp_code
 from minio.default.million_rows
 ;
 '''
-
-
-def get_hive_table_location(host, port, table, database):
-    ' returns the location of a hive table if it exists or None '
-    df = get_hive_table_extended(host, port, table, database)
-    if df.size > 0:
-        location_idx = df.tab_name.str.startswith('location:')
-        location_srs = df.tab_name[location_idx]
-        if location_srs.size > 0:
-            location_name_val = location_srs.values[0]
-            idx = location_name_val.find(':')
-            if idx >= 0:
-                _ = location_name_val[:idx]
-                loc_val = location_name_val[idx + 1:]
-                return loc_val
-    return None
 
 
 def print_parquet_pandas_shape(bucket_uri, file_system):
@@ -96,8 +77,7 @@ def get_parquet_pandas_S3(location, client_kwargs):
 
 
 def get_hive_table_pandas_S3(host, port, table, database, client_kwargs):
-    table_location = get_hive_table_location(
-        host, port, table, database)
+    table_location = get_hive_table_location(host, port, table, database)
     if table_location is not None:
         if table_location.startswith('s3'):
             df = get_parquet_pandas_S3(table_location, client_kwargs)
@@ -112,9 +92,7 @@ def get_hive_table_pandas_S3(host, port, table, database, client_kwargs):
 def main():
     log.info('in file %s', __file__)
 
-    client_kwargs = {
-        'endpoint_url': 'http://10.0.0.2:9000'
-    }
+    client_kwargs = {'endpoint_url': 'http://10.0.0.2:9000'}
 
     presto_host, presto_port = get_presto_host_port()
     hive_host, hive_port = get_hive_host_port()
@@ -124,8 +102,8 @@ def main():
     with timed():
         table = 'million_external'
         database = 'default'
-        df = get_hive_table_pandas_S3(
-            hive_host, hive_port, table, database, client_kwargs)
+        df = get_hive_table_pandas_S3(hive_host, hive_port, table, database,
+                                      client_kwargs)
         if df is not None:
             print('parquet table', df.shape)
         else:
@@ -134,9 +112,8 @@ def main():
             print(msg)
 
     with timed():
-        df1 = get_presto_records(
-            presto_host, presto_port,
-            'select * from minio.default.million_rows')
+        df1 = get_presto_records(presto_host, presto_port,
+                                 'select * from minio.default.million_rows')
         print('internal table', df1.shape)
 
     with timed():
@@ -151,8 +128,8 @@ def main():
     with timed():
         table = 'ft_million_external'
         database = 'default'
-        df3 = get_hive_table_pandas_S3(
-            hive_host, hive_port, table, database, client_kwargs)
+        df3 = get_hive_table_pandas_S3(hive_host, hive_port, table, database,
+                                       client_kwargs)
         if df3 is not None:
             print('parquet table', df3.shape)
         else:
@@ -166,8 +143,8 @@ def main():
     with timed():
         table = 'ft_million_external_typed'
         database = 'default'
-        df4 = get_hive_table_pandas_S3(
-            hive_host, hive_port, table, database, client_kwargs)
+        df4 = get_hive_table_pandas_S3(hive_host, hive_port, table, database,
+                                       client_kwargs)
         if df4 is not None:
             print('parquet table', df4.shape)
         else:

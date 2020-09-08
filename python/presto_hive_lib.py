@@ -89,8 +89,6 @@ def get_hive_list(host, port, sql):
 def get_hive_table_extended(host, port, table, database=None):
     sql = 'show table extended'
     df = get_hive_records_database_like_table(host, port, sql, database, table)
-    sql = 'show table extended'
-    df = get_hive_records_database_like_table(host, port, sql, database, table)
     return df
 
 
@@ -234,6 +232,22 @@ def create_sa_table_from_table(new_table: sa.Table, table: sa.Table):
     # insert data from old table
     stmt = new_table.insert().from_select(table.columns, select=table.select())
     stmt.execute()
+
+
+def get_hive_table_location(host, port, table, database):
+    ' returns the location of a hive table if it exists or None '
+    df = get_hive_table_extended(host, port, table, database)
+    if df.size > 0:
+        location_idx = df.tab_name.str.startswith('location:')
+        location_srs = df.tab_name[location_idx]
+        if location_srs.size > 0:
+            location_name_val = location_srs.values[0]
+            idx = location_name_val.find(':')
+            if idx >= 0:
+                _ = location_name_val[:idx]
+                loc_val = location_name_val[idx + 1:]
+                return loc_val
+    return None
 
 
 @dataclass

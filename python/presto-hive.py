@@ -23,6 +23,9 @@ from rich.syntax import Syntax
 
 import fire
 
+import pyarrow.parquet as pq
+import s3fs
+
 from query_yes_no import query_yes_no
 from presto_hive_lib import get_presto_records
 from presto_hive_lib import get_presto_catalogs
@@ -37,6 +40,10 @@ from presto_hive_lib import get_sa_new_table
 from presto_hive_lib import get_sa_metadata
 from presto_hive_lib import create_sa_table_from_table
 from presto_hive_lib import print_sa_table
+
+from presto_hive_lib import get_hive_table_location
+
+from presto_hive_lib import timed
 
 from IPython import embed
 
@@ -366,6 +373,44 @@ class HiveDatabase:
             # TODO: replace None by '' and remove all rows/cols with only ''
             df = info.iloc[start:stop]
             print_all(remove_empty_rows(remove_empty_cols(df)))
+
+    def show_table_location(self, table, database=None):
+        ''' show table file location if exist
+        '''
+        if database is not None:
+            database = check_hive_database(database)
+        host, port = get_hive_host_port()
+        table_file = get_hive_table_location(host, port, table, database)
+        if table_file:
+            print(table_file)
+        else:
+            print('Cannot find file for table {}'.format(table))
+
+    def get_table_s3(self, table, database=None):
+        ''' get hive table stored as a parquet file
+        '''
+        if database is not None:
+            database = check_hive_database(database)
+        host, port = get_hive_host_port()
+        client_kwargs = {'endpoint_url': 'http://10.0.0.2:9000'}
+        table_location = get_hive_table_location(host, port, table, database)
+        if table_location:
+            if table_location.startswith('s3'):
+                with timed():
+                    file_system = s3fs.S3FileSystem(
+                        client_kwargs=client_kwargs)
+                    dataset = pq.ParquetDataset(
+                        table_location, filesystem=file_system)
+                    parq_file_name = '{}.parq'.format(table)
+                    parq_table = dataset.read()
+                    pq.write_table(parq_table, parq_file_name)
+                    print('saved file {}'.format(parq_file_name))
+            else:
+                sys.exit(
+                    'Can only read s3 files. Unknown location: {}'.format(
+                        table_location))
+        else:
+            print('Cannot find file for table {}'.format(table))
 
 
 def display_df_all(df):
