@@ -27,6 +27,8 @@ python-language-server = "*"
 pytype = "*"
 sqlalchemy = "*"
 s3fs = "*"
+psycopg2 = "*"
+ibis-framework = {extras = ["postgres"], version = "*"}
 
 [requires]
 python_version = "3.8"
