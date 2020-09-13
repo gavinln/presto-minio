@@ -1,16 +1,3 @@
-[_] Create project on github
-	Create dataframe
-		Save dataframe to sqlite
-		Save dataframe to postgres
-		Save dataframe to presto
-		Save dataframe to hdfs file
-		Save dataframe to S3 file
-
-[_] Document changes
-    docker-compose.yml
-    hadoop/core-site.xml
-    presto/minio.properties
-
 [_] Presto and Parquet
 	[X] Copy airline parquet files to Minio
 	[X] Create Presto table based on Minio files
@@ -29,9 +16,10 @@
 
 [_] Read S3 parquet file 2020-08-23
 	[_] Use dask
-	[_] Using boto
-	[_] Using S3FS
-	https://github.com/awslabs/aws-data-wrangler
+	[_] Use boto
+	[_] Use S3FS with pyarrow
+	[_] Use data wrangler
+		https://github.com/awslabs/aws-data-wrangler
 
 [_] Clean up presto_hive.py 2020-09-05
 	[_] Move reusable functions to presto_hive_lib.py
@@ -42,11 +30,10 @@
 	
 [_] Use smallest Presto data type 2020-09-05
 	[X] Create file called presto-efficient-memory.py
-	[_] Get all Presto data types from documentation
-	[_] Get size of each Presto data type
-	[_] Get max, min from table
+	[X] Get all Presto data types from documentation
+	[X] Get size of each Presto data type
+	[X] Get max, min from table
 	[_] Create view with smallest data type from table
-
 
 [X] Sqlalchemy
 	[X] Connect to Presto
@@ -56,3 +43,18 @@
 
 [_] Remove HDFS port 8020 from presto-minio
 	Difficult to connect to hdfs
+
+[_] Join counts 2020-09-12
+	[X] Test sql
+	[_] Add get_approx_join_counts Presto
+		table1 column1 table2 column2 schema catalog
+	[_] Return approximate join counts
+		count distinct column1
+		count distinct column2
+		count column1 union column2
+		count column1 intersect column2
+
+uuid joins
+	[_] Binary vs string
+		Create table with string uuid
+		Create table with binary uuid

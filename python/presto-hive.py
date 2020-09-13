@@ -67,16 +67,16 @@ def pairwise(iterable):
 
 def get_hive_host_port():
     host = '10.0.0.2'
-    host = 'hive.liftoff.io'
+    # host = 'hive.liftoff.io'
     port = 10000
     return host, port
 
 
 def get_presto_host_port():
     host = '10.0.0.2'
-    host = 'presto.liftoff.io'
+    # host = 'presto.liftoff.io'
     port = 8080
-    port = 8889
+    # port = 8889
     return host, port
 
 
@@ -360,8 +360,10 @@ class HiveDatabase:
 
         if database is not None:
             database = check_hive_database(database)
+        host, port = get_hive_host_port()
         sql = 'desc formatted'
-        info = get_hive_records_database_dot_table(sql, database, table)
+        info = get_hive_records_database_dot_table(
+            host, port, sql, database, table)
         col_names = info.col_name.str.strip()
 
         matches = [

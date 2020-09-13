@@ -53,7 +53,7 @@ show tables;
             cross join unnest(items) as s(item)
         where s.item >= 101 and s.item <= 5100
     )
-    select *
+    select id + 10000 as id, grp_code
     from data
     ;
 
@@ -401,6 +401,46 @@ show tables;
     from million_unique
     ;
 
+/*
+ * Set operations: union, intersection
+ */
+-- approx set operations: 1.96 seconds
+    with union_all as (
+        select
+            'ftm' as tbl,
+            cast(approx_set(id) as varbinary) as code_hll,
+            count(*) as counts
+        from ft_million_rows fmr
+        union all
+        select
+            'mil',
+            cast(approx_set(id) as varbinary) as code_hll,
+            count(*) as counts
+        from million_rows mir
+    )
+    select
+        if (tbl is null, 'union', tbl) set_name,
+        cardinality(merge(cast(code_hll as hyperloglog))) as distinct_count
+    from union_all
+    group by rollup(tbl)
+    ;
+
+-- set operations: 11.26s
+    select 'ftm', count(id) as counts
+    from ft_million_rows
+    union all
+    select 'mil', count(id) as counts
+    from million_rows
+    union all
+    select 'union', count(*)
+    from ft_million_rows fmr
+        full join million_rows mir
+            on fmr.id = mir.id
+    ;
+
+/*
+ * partitioned tables
+ */
 -- partitioned tables
     CREATE TABLE minio.default.million_partitioned
     with (

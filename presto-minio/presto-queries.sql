@@ -6,7 +6,7 @@
 
 /*
 # Connect o Presto Docker container
-docker exec -ti $(docker container ls -f "ancestor=starburstdata/presto" -q) bash
+docker exec -ti $(docker container ls -f "ancestor=starburstdata/presto:340-e" -q) bash
 # edit the JVM config file
 vi /usr/lib/presto/etc/jvm.config
 # modify the lines
