@@ -538,6 +538,22 @@ docker-compose up -d
 /spark/bin/pyspark"
 ```
 
+## Ibis
+
+[Ibis][500] provides a standard way to write analytics code, that then can be run in
+multiple engines both SQL and non-SQL systems.
+
+[500]: http://ibis-project.org/
+
+The GPU database [Omnisci][510] has one of the best documentation of IBIS of any
+backend.
+
+[510]: https://docs-new.omnisci.com/data-science/introduction-to-ibis
+
+This [article][520] demonstrates how to use ibis with Bigquery.
+
+[520]: https://towardsdatascience.com/ibis-a-framework-to-tie-together-development-and-production-code-588d05e07d11
+
 ## DBT project
 
 ### Postgres DBT
