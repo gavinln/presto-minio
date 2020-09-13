@@ -30,6 +30,7 @@ Vagrant.configure("2") do |config|
   # accessing "localhost:8080" will access port 80 on the guest machine.
   config.vm.network "forwarded_port", guest: 8080, host: 8080  # presto
   config.vm.network "forwarded_port", guest: 9000, host: 9000  # minio
+  config.vm.network "forwarded_port", guest: 10000, host: 10000  # hive
 
   # Create a private network, which allows host-only access to the machine
   # using a specific IP.
