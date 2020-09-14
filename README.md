@@ -602,6 +602,14 @@ Writing an [Ibis backend][540]
 
 [540]: https://github.com/ibis-project/ibis/issues/2307 
 
+[Notebook][550] with Ibis tutorial
+
+[550]: https://cloud.google.com/community/tutorials/bigquery-ibis
+
+[Ibis and Altair][560] for data exploration
+
+[560]: https://www.youtube.com/watch?v=1AUaddf5tk8
+
 Code sizes for backends
 
 ```
