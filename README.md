@@ -540,6 +540,46 @@ docker-compose up -d
 
 ## Ibis
 
+### Extract the Postgres sample database
+
+1. Change to the sample database directory
+
+```
+cd postgres
+```
+
+2. Extract the sample database
+
+```
+tar xvfz dvdrental.tar.gz
+```
+
+3. Connect to Docker container
+
+```
+CONTAINER_ID=$(docker container ls -f "ancestor=postgres:12.4" -q)
+docker exec -ti $CONTAINER_ID bash
+```
+
+4. Exit from Docker container
+
+```
+exit
+```
+
+5. Create databse dvdrental
+
+```
+SQL="create database dvdrental"
+docker exec -ti $CONTAINER_ID psql -U postgres -d postgres -c "$SQL"
+```
+
+6. Load database
+
+```
+docker exec -ti $CONTAINER_ID pg_restore -U postgres -d dvdrental /dvdrental.tar
+```
+
 [Ibis][500] provides a standard way to write analytics code, that then can be run in
 multiple engines both SQL and non-SQL systems.
 
