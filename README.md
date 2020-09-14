@@ -554,6 +554,45 @@ This [article][520] demonstrates how to use ibis with Bigquery.
 
 [520]: https://towardsdatascience.com/ibis-a-framework-to-tie-together-development-and-production-code-588d05e07d11
 
+Ibis Spark backend [video][530]
+
+[530]: https://www.youtube.com/watch?v=vCipYUrlNQI
+
+Writing an [Ibis backend][540]
+
+[540]: https://github.com/ibis-project/ibis/issues/2307 
+
+Code sizes for backends
+
+```
+$ ls ibis/sql/postgres/*.py | xargs -I {} cat {} | wc
+   1097    3173   33393
+
+$ ls ibis/sql/mysql/*.py | xargs -I {} cat {} | wc
+    626    1524   17822
+
+$ ls ibis/sql/sqlite/*.py | xargs -I {} cat {} | wc
+    800    1930   20562
+
+$ ls ibis/omniscidb/*.py | xargs -I {} cat {} | wc
+   3931    9214  105421
+
+$ ls ibis/bigquery/*.py | xargs -I {} cat {} | wc
+   1385    3221   39921
+
+$ ls ibis/clickhouse/*.py | xargs -I {} cat {} | wc
+   1530    3484   42067
+
+$ ls ibis/impala/*.py | xargs -I {} cat {} | wc
+   5627   13758  158256
+
+$ ls ibis/pyspark/*.py | xargs -I {} cat {} | wc
+   1605    3969   43782
+
+$ ls ibis/spark/*.py | xargs -I {} cat {} | wc
+   1760    4080   49838
+```
+
 ## DBT project
 
 ### Postgres DBT
