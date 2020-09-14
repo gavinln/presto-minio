@@ -35,6 +35,12 @@ presto-stop:  ## stop Presto
 presto-ps:  ## list Presto docker containers
 	docker-compose -f $(SCRIPT_DIR)/presto-minio/docker-compose.yml ps
 
+postgres-start:  ## Start Postges in container
+	docker-compose -f $(SCRIPT_DIR)/postgres/docker-compose.yml up -d
+
+postgres-stop:  ## Start Postges in container
+	docker-compose -f $(SCRIPT_DIR)/postgres/docker-compose.yml stop
+
 .PHONY: presto-hive
-presto-hive:  ## create table example
+presto-hive:  ## run presto-hive db util
 	pipenv run python python/presto-hive.py
