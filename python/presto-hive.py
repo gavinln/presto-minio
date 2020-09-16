@@ -85,10 +85,11 @@ def get_presto_catalog_schema():
 
 
 def print_all(df):
-    with pd.option_context(
-            "display.max_rows", None,
-            "display.max_columns", None):
-        print(df)
+    if df is not None:
+        with pd.option_context(
+                "display.max_rows", None,
+                "display.max_columns", None):
+            print(df.to_string(index=False))
 
 
 # need a function get_hive_tbl_database_dot_table
@@ -138,7 +139,7 @@ def print_name_value_dict(name_value, formatter=None):
             formatted_value = get_formatted_value(value_formatter, value)
         else:
             formatted_value = value
-        print('{name:{width}s}: {value}'.format(
+        print('{name:{width}s} : {value}'.format(
             name=name, width=max_name_len, value=formatted_value))
 
 
@@ -325,7 +326,7 @@ class HiveDatabase:
             print(idx, function)
 
     def desc(self, table, database=None):
-        '''
+        ''' shows list of columns including partition
         '''
         if database is not None:
             database = check_hive_database(database)
@@ -336,7 +337,7 @@ class HiveDatabase:
         print_all(info)
 
     def desc_formatted(self, table, database=None):
-        '''
+        ''' show table metadata in tablular format
         '''
         def srs_match_index(srs, match_str):
             match_list = srs.index[srs == match_str].values
@@ -358,6 +359,19 @@ class HiveDatabase:
                     ) if row.unique().shape[0] == 1]
             return df2.drop(axis='columns', columns=empty_cols)
 
+        def get_header_row_df(df, headers):
+            ' returns header row if exists '
+            assert df.shape[0] > 0
+            header = df.iloc[0, 0].strip()
+            if header in headers:
+                return header
+            return None
+
+        def print_clean_name_value_df(df):
+            df_clean = remove_empty_rows(remove_empty_cols(df))
+            name_value = dataframe_to_dict(df_clean)
+            print_name_value_dict(name_value)
+
         if database is not None:
             database = check_hive_database(database)
         host, port = get_hive_host_port()
@@ -367,20 +381,27 @@ class HiveDatabase:
         col_names = info.col_name.str.strip()
 
         matches = [
-            '# Partition Information', '# Detailed Table Information',
+            '# col_name', '# Partition Information',
+            '# Detailed Table Information',
             'Table Parameters:', '# Storage Information',
             'Storage Desc Params:'
         ]
         match_idx_list = [
             srs_match_index(col_names, match) for match in matches]
         valid_match_idx_list = [
-            match_idx for match_idx in match_idx_list if match_idx > 0]
-        all_match_idx_list = [0] + valid_match_idx_list + [col_names.size]
+            match_idx for match_idx in match_idx_list if match_idx >= 0]
+        all_match_idx_list = valid_match_idx_list + [col_names.size]
         for idx, (start, stop) in enumerate(pairwise(all_match_idx_list)):
-            print('Part {}: [{}, {}]'.format(idx, start, stop))
-            # TODO: replace None by '' and remove all rows/cols with only ''
+            log.debug('Part {}: [{}, {}]'.format(idx, start, stop))
             df = info.iloc[start:stop]
-            print_all(remove_empty_rows(remove_empty_cols(df)))
+            header = get_header_row_df(df, matches)
+            print()
+            if header:
+                print(header)
+                df_output = df.iloc[1:, ]
+            else:
+                df_output = df
+            print_clean_name_value_df(df_output)
 
     def show_table_location(self, table, database=None):
         ''' show table file location if exist
@@ -487,6 +508,22 @@ class PrestoDatabase:
     describe database.table;
     '''
 
+    def prepare_describe(self, schema, catalog):
+        table = 'million_rows'
+        sql = '''
+            prepare my_select
+            from
+            select * from {}.{}.{};
+            describe input myselect;
+        '''.format(catalog, schema, table)
+        host, port = get_presto_host_port()
+        get_presto_records(host, port, sql)
+        # sql = '''
+        #     describe input myselect
+        # '''.format(catalog, schema, table)
+        # results = get_presto_records(host, port, sql)
+        # print_all(results)
+
     def show_catalogs(self):
         '''
         '''
@@ -495,7 +532,7 @@ class PrestoDatabase:
         print(catalogs)
 
     def show_schemas(self, catalog):
-        '''
+        ''' show schemas
         '''
         valid_catalog = check_presto_catalogs(catalog)
         sql = 'show schemas from {}'.format(valid_catalog)
@@ -504,12 +541,12 @@ class PrestoDatabase:
         print(catalogs)
 
     def show_tables(self, schema, catalog):
-        '''
+        ''' show tables
         '''
         sql = 'show tables from {}.{}'.format(catalog, schema)
         host, port = get_presto_host_port()
-        catalogs = get_presto_records(host, port, sql)
-        print_all(catalogs)
+        tables = get_presto_records(host, port, sql)
+        print_all(tables)
 
     def show_table(self, table, schema, catalog):
         '''
@@ -555,8 +592,9 @@ class PrestoDatabase:
         '''
         sql = 'show stats for {}.{}.{}'.format(catalog, schema, table)
         host, port = get_presto_host_port()
-        catalogs = get_presto_records(host, port, sql)
-        print(catalogs)
+        stats = get_presto_records(host, port, sql)
+        # print(stats)
+        print_all(stats)
 
     def _desc_table(self, table, schema):
         '''
