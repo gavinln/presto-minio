@@ -48,13 +48,32 @@
 	[X] Test sql
 	[_] Add get_approx_join_counts Presto
 		table1 column1 table2 column2 schema catalog
-	[_] Return approximate join counts
+	[X] Return approximate join counts
 		count distinct column1
 		count distinct column2
 		count column1 union column2
 		count column1 intersect column2
 
-uuid joins
+uuid joins 2020-09-15
 	[_] Binary vs string
 		Create table with string uuid
 		Create table with binary uuid
+
+Partitioned table desc-formatted
+	Column names
+	# Partition Information
+	# Detaited Table Information
+	Table Parameters:
+	# Storage Information
+
+Clustered table desc-formatted
+	Column names
+	# Detailed Table Information
+	Table Parameters:
+	# Storage Information
+
+Create function get_presto_prepare_describe 2020-09-15
+	get_presto_records can execute only 1 sql at a time
+	get_presto_prepare_describe
+		runs prepare and decribe sequentially using same cursor
+
