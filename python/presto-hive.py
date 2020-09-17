@@ -147,6 +147,88 @@ def dataframe_to_dict(df):
     return dict(df.iloc[:, [0, 1]].to_records(index=False))
 
 
+class HeaderDataFrame:
+
+    def __init__(self, header, dataframe):
+        self.header = header
+        self.dataframe = dataframe
+
+
+def _srs_match_index(srs, match_str):
+    match_list = srs.index[srs == match_str].values
+    if len(match_list) > 0:
+        return match_list[0]
+    return -1
+
+
+def _remove_empty_rows(df):
+    df2 = df.replace(to_replace=[None], value=[''])
+    empty_rows = [
+        idx for idx, row in df2.iterrows(
+            ) if row.unique().shape[0] == 1]
+    return df2.drop(axis='index', index=empty_rows)
+
+
+def _remove_empty_cols(df):
+    df2 = df.replace(to_replace=[None], value=[''])
+    empty_cols = [
+        col for col, row in df2.iteritems(
+            ) if row.unique().shape[0] == 1]
+    return df2.drop(axis='columns', columns=empty_cols)
+
+
+def _get_header_row_df(df, headers):
+    ' returns header row if exists '
+    assert df.shape[0] > 0
+    header = df.iloc[0, 0].strip()
+    if header in headers:
+        return header
+    return None
+
+
+def _print_clean_name_value_df(df):
+    df_clean = _remove_empty_rows(_remove_empty_cols(df))
+    name_value = dataframe_to_dict(df_clean)
+    print_name_value_dict(name_value)
+
+
+def _get_header_dataframes(df):
+    col_names = df.col_name.str.strip()
+    matches = [
+        '# col_name', '# Partition Information',
+        '# Detailed Table Information',
+        'Table Parameters:', '# Storage Information',
+        'Storage Desc Params:'
+    ]
+    match_idx_list = [
+        _srs_match_index(col_names, match) for match in matches]
+    valid_match_idx_list = [
+        match_idx for match_idx in match_idx_list if match_idx >= 0]
+    all_match_idx_list = valid_match_idx_list + [col_names.size]
+
+    header_dataframes = []
+
+    for idx, (start, stop) in enumerate(pairwise(all_match_idx_list)):
+        df_part = df.iloc[start:stop]
+        header = _get_header_row_df(df_part, matches)
+        if header:
+            df_output = df_part.iloc[1:, ]
+            header_dataframes.append(
+                HeaderDataFrame(header, df_output))
+        else:
+            df_output = df_part
+            header_dataframes.append(
+                HeaderDataFrame(None, df_output))
+    return header_dataframes
+
+
+def _desc_formatted(host, port, table, database):
+    sql = 'desc formatted'
+    df = get_hive_records_database_dot_table(
+        host, port, sql, database, table)
+    return _get_header_dataframes(df)
+
+
 class HiveDatabase:
     ''' display meta data from a hive database
 
@@ -339,69 +421,18 @@ class HiveDatabase:
     def desc_formatted(self, table, database=None):
         ''' show table metadata in tablular format
         '''
-        def srs_match_index(srs, match_str):
-            match_list = srs.index[srs == match_str].values
-            if len(match_list) > 0:
-                return match_list[0]
-            return -1
-
-        def remove_empty_rows(df):
-            df2 = df.replace(to_replace=[None], value=[''])
-            empty_rows = [
-                idx for idx, row in df2.iterrows(
-                    ) if row.unique().shape[0] == 1]
-            return df2.drop(axis='index', index=empty_rows)
-
-        def remove_empty_cols(df):
-            df2 = df.replace(to_replace=[None], value=[''])
-            empty_cols = [
-                col for col, row in df2.iteritems(
-                    ) if row.unique().shape[0] == 1]
-            return df2.drop(axis='columns', columns=empty_cols)
-
-        def get_header_row_df(df, headers):
-            ' returns header row if exists '
-            assert df.shape[0] > 0
-            header = df.iloc[0, 0].strip()
-            if header in headers:
-                return header
-            return None
-
-        def print_clean_name_value_df(df):
-            df_clean = remove_empty_rows(remove_empty_cols(df))
-            name_value = dataframe_to_dict(df_clean)
-            print_name_value_dict(name_value)
-
         if database is not None:
             database = check_hive_database(database)
         host, port = get_hive_host_port()
-        sql = 'desc formatted'
-        info = get_hive_records_database_dot_table(
-            host, port, sql, database, table)
-        col_names = info.col_name.str.strip()
 
-        matches = [
-            '# col_name', '# Partition Information',
-            '# Detailed Table Information',
-            'Table Parameters:', '# Storage Information',
-            'Storage Desc Params:'
-        ]
-        match_idx_list = [
-            srs_match_index(col_names, match) for match in matches]
-        valid_match_idx_list = [
-            match_idx for match_idx in match_idx_list if match_idx >= 0]
-        all_match_idx_list = valid_match_idx_list + [col_names.size]
-        for idx, (start, stop) in enumerate(pairwise(all_match_idx_list)):
-            log.debug('Part {}: [{}, {}]'.format(idx, start, stop))
-            df = info.iloc[start:stop]
-            header = get_header_row_df(df, matches)
+        header_dataframes = _desc_formatted(
+            host, port, table, database)
+
+        for hdf in header_dataframes:
+            header, dataframe = hdf.header, hdf.dataframe
             print()
-            if header:
-                print(header)
-                df_output = df.iloc[1:, ]
-            else:
-                df_output = df
-            print_clean_name_value_df(df_output)
+            print(header)
+            _print_clean_name_value_df(dataframe)
 
     def show_table_location(self, table, database=None):
         ''' show table file location if exist
