@@ -42,11 +42,7 @@ from presto_hive_lib import get_sa_metadata
 from presto_hive_lib import create_sa_table_from_table
 from presto_hive_lib import print_sa_table
 
-from presto_hive_lib import get_hive_table_location
-
 from presto_hive_lib import timed
-
-from IPython import embed
 
 
 # Print all syntax highlighting styles
@@ -90,10 +86,6 @@ def print_all(df):
                 "display.max_rows", None,
                 "display.max_columns", None):
             print(df.to_string(index=False))
-
-
-# need a function get_hive_tbl_database_dot_table
-# for show tblproperties
 
 
 def get_hive_databases(host, port):
@@ -148,7 +140,7 @@ def dataframe_to_dict(df):
 
 
 class HeaderDataFrame:
-
+    ''' holds a header (text string) and data frame '''
     def __init__(self, header, dataframe):
         self.header = header
         self.dataframe = dataframe
@@ -186,9 +178,12 @@ def _get_header_row_df(df, headers):
     return None
 
 
+def _remove_empty_rows_cols(df):
+    return _remove_empty_rows(_remove_empty_cols(df))
+
+
 def _print_clean_name_value_df(df):
-    df_clean = _remove_empty_rows(_remove_empty_cols(df))
-    name_value = dataframe_to_dict(df_clean)
+    name_value = dataframe_to_dict(df)
     print_name_value_dict(name_value)
 
 
@@ -227,6 +222,38 @@ def _desc_formatted(host, port, table, database):
     df = get_hive_records_database_dot_table(
         host, port, sql, database, table)
     return _get_header_dataframes(df)
+
+
+def get_hive_table_location(host, port, table, database):
+    ' returns the location of a hive table if it exists or None '
+    header_dataframes = _desc_formatted(
+        host, port, table, database)
+
+    locations = []
+    for hdf in header_dataframes:
+        header, dataframe = hdf.header, hdf.dataframe
+        if header == '# Detailed Table Information':
+            df_clean = _remove_empty_rows_cols(dataframe)
+            name_value = dataframe_to_dict(df_clean)
+            locations = [value for name, value in name_value.items(
+                ) if name.startswith('Location:')]
+    if len(locations) > 0:
+        return locations[0]
+    return None
+
+
+def get_s3_parquet_file(
+        s3_location, parq_file_path, client_kwargs=None):
+    ' copy parquet file to local machine '
+    file_system = s3fs.S3FileSystem(
+        client_kwargs=client_kwargs)
+
+    dataset = pq.ParquetDataset(s3_location, filesystem=file_system)
+    parq_table = dataset.read()
+    pq.write_table(parq_table, parq_file_path)
+    parq_path = pathlib.Path(parq_file_path)
+    print('Saved to file {}, size {:,d} bytes'.format(
+        parq_path.name, parq_path.stat().st_size))
 
 
 class HiveDatabase:
@@ -432,7 +459,8 @@ class HiveDatabase:
             header, dataframe = hdf.header, hdf.dataframe
             print()
             print(header)
-            _print_clean_name_value_df(dataframe)
+            df_clean = _remove_empty_rows_cols(dataframe)
+            _print_clean_name_value_df(df_clean)
 
     def show_table_location(self, table, database=None):
         ''' show table file location if exist
@@ -440,9 +468,10 @@ class HiveDatabase:
         if database is not None:
             database = check_hive_database(database)
         host, port = get_hive_host_port()
-        table_file = get_hive_table_location(host, port, table, database)
-        if table_file:
-            print(table_file)
+
+        table_location = get_hive_table_location(host, port, table, database)
+        if table_location:
+            print(table_location)
         else:
             print('Cannot find file for table {}'.format(table))
 
@@ -453,23 +482,15 @@ class HiveDatabase:
             database = check_hive_database(database)
         host, port = get_hive_host_port()
         client_kwargs = {'endpoint_url': 'http://10.0.0.2:9000'}
-        client_kwargs = {}
+        # client_kwargs = {}
         table_location = get_hive_table_location(host, port, table, database)
         print('hive table {}, location {}'.format(table, table_location))
         if table_location:
             if table_location.startswith('s3'):
                 with timed():
-                    # file_system = s3fs.S3FileSystem(
-                    #     client_kwargs=client_kwargs)
-                    file_system = s3fs.S3FileSystem()
-                    locations = file_system.ls(table_location)
-                    file_locations = [loc for loc in locations if not loc.endswith('/')]
-                    dataset = pq.ParquetDataset(
-                        file_locations, filesystem=file_system)
-                    parq_file_name = '{}.parq'.format(table)
-                    parq_table = dataset.read()
-                    pq.write_table(parq_table, parq_file_name)
-                    print('saved file {}'.format(parq_file_name))
+                    parq_file_path = '{}.parq'.format(table)
+                    get_s3_parquet_file(
+                        table_location, parq_file_path, client_kwargs)
             else:
                 sys.exit(
                     'Can only read s3 files. Unknown location: {}'.format(
@@ -631,6 +652,8 @@ class PrestoDatabase:
         '''
             describe table from hive
         '''
+        assert False, 'May not be used'
+
         sql = 'describe hive.{}.{}'.format(schema, table)
         host, port = get_presto_host_port()
         df = get_presto_records(host, port, sql)
@@ -640,6 +663,8 @@ class PrestoDatabase:
         '''
             describe all tables from hive.flat_rtb
         '''
+        assert False, 'May not be used'
+
         sql = 'show tables from hive.flat_rtb'
         host, port = get_presto_host_port()
         tables = get_presto_records(host, port, sql)
