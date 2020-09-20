@@ -101,3 +101,31 @@ set;  -- get all configuration properties
     analyze table million_rows
     compute statistics
     ;
+
+-- create hive table with parquet compression -- DOES NOT work
+    create table parq_compression_snappy (
+        id bigint,
+        grp_code bigint
+    )
+    stored as parquet
+    location 's3a://example-data/million_external/compression_snappy'
+    tblproperties ('parquet.compression'='SNAPPY')
+    ;
+
+    insert into parq_compression_snappy
+    select * from million_rows
+    ;
+
+-- create hive table with parquet compression -- DOES NOT work
+    create table parq_compression_gzip (
+        id bigint,
+        grp_code bigint
+    )
+    stored as parquet
+    location 's3a://example-data/million_external/compression_gzip'
+    tblproperties ('parquet.compression'='gzip')
+    ;
+
+    insert into parq_compression_gzip
+    select * from million_rows
+    ;
