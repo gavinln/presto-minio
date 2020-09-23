@@ -832,6 +832,10 @@ aws --endpoint=http://10.0.0.2:9000/ s3 ls
 
 [1020]: https://github.com/minio/minio/releases
 
+3. [Data lake engine][1030]
+
+[1030]: https://www.youtube.com/watch?v=yMCV9RA6kNQ
+
 ### Other software
 
 * [Python driver for Presto from Dropbox][1120]
@@ -850,6 +854,9 @@ aws --endpoint=http://10.0.0.2:9000/ s3 ls
 
 [1150]: https://blog.minio.io/building-an-on-premise-ml-ecosystem-with-minio-powered-by-presto-weka-r-and-s3select-feature-fefbbaa87054
 
+* Minio [S3 Select][1160]
+
+[1160]: https://docs.min.io/docs/minio-select-api-quickstart-guide.html
 
 [Using DBT][1170]
 
