@@ -50,11 +50,11 @@ def get_query_url(query_self_url, netloc):
     return query_url
 
 
-query_extract_fields = [
-    'queryId', 'state', 'url', 'createTime', 'endTime', 'errorType', 'query']
-
 QueryExtractBase = namedtuple(
-    'QueryExtractBase', query_extract_fields)
+    'QueryExtractBase', [
+        'queryId', 'state', 'url', 'createTime', 'endTime', 'errorType',
+        'query'
+    ])
 
 
 def get_query_extract(query, netloc):
@@ -98,10 +98,13 @@ def get_query_inputs(query_detail_url):
 
 def query_tables_to_dataframe(tables, query_id):
     records = []
+    schema = None
+    table_name = None
+
     for idx, table in enumerate(tables):
         if idx == 0:
-            schema = table['schema']
-            table_name = table['table']
+            schema = table.get('schema')
+            table_name = table.get('table')
 
         column_list = table['columns']
         for column in column_list:
@@ -142,7 +145,7 @@ class QueryList(list):
 
     def to_frame(self):
         return pd.DataFrame.from_records(
-            (qs for qs in self), columns=query_extract_fields)
+            (qs for qs in self), columns=QueryExtractBase._fields)
 
     def columns_frame(self):
         return self.columns_df

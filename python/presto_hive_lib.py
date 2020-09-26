@@ -7,7 +7,9 @@ from datetime import datetime as dt
 from collections import namedtuple
 import textwrap
 
-from typing import Dict, Optional
+from typing import Dict, Optional, Union, List
+
+from more_itertools import first
 
 from pyhive import presto
 from pyhive import hive
@@ -306,19 +308,22 @@ class PrestoCatalog:
     server: str
     name: str
 
-    def schemas(self, name=None):
+    def schema(self, name) -> Optional[PrestoSchema]:
+        schemas = self.schemas()
+        schema_names = [schema.name for schema in schemas]
+        if name not in schema_names:
+            raise ValueError(
+                'schema {} not present. Should be one of {}'.format(
+                    name, ', '.join(schema_names)))
+        matched_schemas = [pc for pc in schemas if pc.name == name]
+        return first(matched_schemas, None)
+
+    def schemas(self) -> List[PrestoSchema]:
         sql = 'show schemas from {}'.format(self.name)
         schemas = [
             PrestoSchema(self.server, schema_name, self.name)
             for (schema_name, ) in presto_execute_fetchall(self.server, sql)
         ]
-        schema_names = [schema.name for schema in schemas]
-        if name is not None:
-            if name not in schema_names:
-                raise ValueError(
-                    'schema {} not present. Should be one of {}'.format(
-                        name, ', '.join(schema_names)))
-            return [pc for pc in schemas if pc.name == name][0]
         return schemas
 
 
@@ -326,19 +331,23 @@ class PrestoCatalog:
 class PrestoMeta:
     server: str
 
-    def catalogs(self, name=None):
+    def catalog(self, name) -> Optional[PrestoCatalog]:
+        catalogs = self.catalogs()
+        catalog_names = [catalog.name for catalog in catalogs]
+        if name not in catalog_names:
+            raise ValueError(
+                'Catalog {} not present. Should be one of {}'.format(
+                    name, ', '.join(catalog_names)))
+        matched_catalogs = [pc for pc in catalogs if pc.name == name]
+        return first(matched_catalogs, None)
+
+
+    def catalogs(self) -> List[PrestoCatalog]:
         sql = 'show catalogs'
         catalogs = [
             PrestoCatalog(self.server, name)
             for (name, ) in presto_execute_fetchall(self.server, sql)
         ]
-        catalog_names = [catalog.name for catalog in catalogs]
-        if name is not None:
-            if name not in catalog_names:
-                raise ValueError(
-                    'Catalog {} not present. Should be one of {}'.format(
-                        name, ', '.join(catalog_names)))
-            return [pc for pc in catalogs if pc.name == name][0]
         return catalogs
 
 
@@ -346,8 +355,8 @@ def main():
     server = ''
     pm = PrestoMeta(server)
     print(pm.catalogs())
-    print(pm.catalogs('minio'))
-    print(pm.catalogs('minio').schemas())
-    print(pm.catalogs('minio').schemas('default'))
-    print(pm.catalogs('minio').schemas('default').tables())
-    print(pm.catalogs('minio').schemas('default').tables('example'))
+    print(pm.catalog('minio'))
+    print(pm.catalog('minio').schemas())
+    print(pm.catalog('minio').schema('default'))
+    print(pm.catalog('minio').schema('default').tables())
+    print(pm.catalog('minio').schema('default').tables('example'))
