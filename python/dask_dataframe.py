@@ -3,8 +3,6 @@ Time the execution of dask dataframes
 '''
 from pathlib import Path
 
-import humanize as hz
-
 import pyarrow.parquet as pq
 import pyarrow as pa
 import pandas as pd

@@ -11,6 +11,7 @@ python python/s3-process.py
 '''
 
 import textwrap
+from textwrap import indent
 
 from IPython import embed
 
@@ -23,20 +24,6 @@ import s3fs
 from pyarrow import fs
 
 import boto3
-
-store_opt = {
-    "client_kwargs": {
-        "endpoint_url": "http://10.0.0.2:9000"
-    }
-}
-
-
-def read_s3_dask():
-    file_csv = 's3://customer-data-text/customer.csv'
-
-    print(f'reading {file_csv}')
-    # df = dd.read_csv(file_csv, storage_options=store_opt)
-    # print(df.compute())
 
 
 def print_parq_file_info(parq_file):
@@ -102,6 +89,14 @@ def print_parquet_dataset_info(bucket_uri, file_system, verbose=False):
     print('Total rows {}'.format(row_count))
 
 
+def get_s3fs():
+    client_kwargs = {
+        'endpoint_url': 'http://10.0.0.2:9000'
+    }
+    file_system = s3fs.S3FileSystem(client_kwargs=client_kwargs)
+    return file_system
+
+
 def main2():
     # By default, MinIO will listen for unencrypted HTTP traffic.
     minio = fs.S3FileSystem(scheme="http", endpoint_override="10.0.0.2:9000")
@@ -119,11 +114,7 @@ def main2():
     # TODO: read multiple files using dataset
 
     # https://stackoverflow.com/questions/45082832/how-to-read-partitioned-parquet-files-from-s3-using-pyarrow-in-python
-    client_kwargs = {
-        'endpoint_url': 'http://10.0.0.2:9000'
-    }
-
-    file_system = s3fs.S3FileSystem(client_kwargs=client_kwargs)
+    file_system = get_s3fs()
     print(file_system.ls('example-data'))
 
     bucket_uri = 's3://example-data/external-data'
@@ -135,21 +126,57 @@ def main2():
     print_parquet_dataset_info(bucket_uri, file_system, verbose=False)
 
 
-def main():
-    client_kwargs = {
-        'endpoint_url': 'http://10.0.0.2:9000'
-    }
-
+def main3():
+    ' List all files and row count in each file Parquet metadata '
+    file_sys = get_s3fs()
     bucket_uri = 's3://example-data/external-clustered'
-    file_sys = s3fs.S3FileSystem(client_kwargs=client_kwargs)
     files = file_sys.ls(bucket_uri)
     row_count = 0
-    for file_name in files:
+    file_count = 0
+    for idx, file_name in enumerate(files):
+        file_count += 1
         f = file_sys.open(file_name)
         pq_file = pq.ParquetFile(f)
         row_count += pq_file.metadata.num_rows
         f.close()
-    print('{:,}'.format(row_count))
+    print('Row count: {:,}'.format(row_count))
+    print('File count: {:,}'.format(file_count))
+
+
+def main():
+    print('in main')
+    s3 = boto3.client('s3', endpoint_url='http://10.0.0.2:9000')
+
+    k = 'million_external/20200923_041640_00009_vzmts_3063e50f-6583-49c3-9d6c-9bb9d5f5eaa9'
+
+    r = s3.select_object_content(
+        Bucket='example-data',
+        Key=k,
+        Expression="select id, grp_code from s3object limit 2",
+        ExpressionType="SQL",
+        InputSerialization={
+            'Parquet': {}
+        },
+        OutputSerialization={
+            'CSV': {
+                'RecordDelimiter': '\n',
+                'FieldDelimiter': '|'
+            }
+        },
+    )
+
+    for event in r['Payload']:
+        if 'Records' in event:
+            records = event['Records']['Payload'].decode('utf-8')
+            print(indent(records, prefix='\t'))
+        elif 'Stats' in event:
+            statsDetails = event['Stats']['Details']
+            print("Stats details bytesScanned: ")
+            print(statsDetails['BytesScanned'])
+            print("Stats details bytesProcessed: ")
+            print(statsDetails['BytesProcessed'])
+            print("Stats details bytesReturned: ")
+            print(statsDetails['BytesReturned'])
 
 
 if __name__ == '__main__':

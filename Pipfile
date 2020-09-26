@@ -29,6 +29,12 @@ sqlalchemy = "*"
 s3fs = "*"
 psycopg2 = "*"
 ibis-framework = {extras = ["postgres"], version = "*"}
+pylint = "*"
+ninja = "*"
+faker = "*"
+modin = {extras = ["ray"], version = "*"}
+dask = "*"
+ray = "*"
 
 [requires]
 python_version = "3.8"

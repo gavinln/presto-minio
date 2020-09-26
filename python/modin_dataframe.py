@@ -8,14 +8,13 @@ from pathlib import Path
 
 import ray
 import os
-os.environ["MODIN_ENGINE"] = "ray"
 import modin.pandas as pdm
 
 import pyarrow.parquet as pq
-import pyarrow as pa
 import pandas as pd
 import numpy as np
 
+os.environ["MODIN_ENGINE"] = "ray"
 
 
 SCRIPT_DIR = Path(__file__).parent.resolve()

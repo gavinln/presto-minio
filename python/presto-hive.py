@@ -126,7 +126,7 @@ def print_name_value_dict(name_value, formatter=None):
         max_name_len = 40
     value_format = {} if formatter is None else formatter
     for name, value in name_value.items():
-        if name in value_format:
+        if name in value_format and formatter is not None:
             value_formatter = formatter[name]
             formatted_value = get_formatted_value(value_formatter, value)
         else:
