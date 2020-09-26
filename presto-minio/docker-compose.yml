@@ -31,6 +31,7 @@ services:
       - './minio/data/:/data'
       - './minio/config:/root/.minio'
     environment:
-      MINIO_ACCESS_KEY: V42FCGRVMK24JJ8DHUYG
-      MINIO_SECRET_KEY: bKhWxVF3kQoLY9kFmt91l+tDrEoZjqnWXzY9Eza
+      MINIO_ACCESS_KEY: 'V42FCGRVMK24JJ8DHUYG'
+      MINIO_SECRET_KEY: 'bKhWxVF3kQoLY9kFmt91l+tDrEoZjqnWXzY9Eza'
+      MINIO_API_SELECT_PARQUET: 'on'
     command: server /data
