@@ -18,6 +18,8 @@ import sys
 
 import pandas as pd
 
+import sqlalchemy as sa
+
 from rich.console import Console
 from rich.syntax import Syntax
 
@@ -76,6 +78,17 @@ def get_presto_host_port():
     port = 8080
     # port = 8889
     return host, port
+
+
+def get_clickhouse_host_port():
+    host = '10.0.0.2'
+    port = 8123
+    return host, port
+
+
+def get_s3_client_kwargs():
+    client_kwargs = {'endpoint_url': 'http://10.0.0.2:9001'}
+    return client_kwargs
 
 
 def get_presto_catalog_schema():
@@ -483,7 +496,8 @@ class HiveDatabase:
         if database is not None:
             database = check_hive_database(database)
         host, port = get_hive_host_port()
-        client_kwargs = {'endpoint_url': 'http://10.0.0.2:9000'}
+        # client_kwargs = {'endpoint_url': 'http://10.0.0.2:9000'}
+        client_kwargs = get_s3_client_kwargs()
         # client_kwargs = {}
         table_location = get_hive_table_location(host, port, table, database)
         print('hive table {}, location {}'.format(table, table_location))
@@ -757,26 +771,64 @@ def print_parq_file_info(parq_file):
 class ParquetAction:
     ''' parquet actions
     '''
-    def test(self):
-        parq_files = SCRIPT_DIR.glob('*.parq')
-        for file_name in parq_files:
+    def desc(self, file_name):
+        ' describe the pieces and schema of a parquet file '
+        if  file_name.startswith('s3://'):
+            # client_kwargs = {'endpoint_url': 'http://10.0.0.2:9000'}
+            client_kwargs = get_s3_client_kwargs()
+            file_system = s3fs.S3FileSystem(client_kwargs=client_kwargs)
+            files = file_system.ls(file_name)
             print(file_name)
-            print_parq_file_info(file_name)
+            print('There are {} files'.format(len(files)))
+        else:
+            path = pathlib.Path(file_name)
+            if path.exists():
+                print('Parquet file {}'.format(file_name))
+                dataset = pq.ParquetDataset(file_name)
+                print('\t{} pieces'.format(len(dataset.pieces)))
+                print(textwrap.indent(str(dataset.schema), prefix='\t'))
 
-    def test2(self):
-        client_kwargs = {'endpoint_url': 'http://10.0.0.2:9000'}
-        file_system = s3fs.S3FileSystem(client_kwargs=client_kwargs)
-        s3_location = 's3://example-data/'
-        s3_prefix = 's3://'
-        for file_name in file_system.ls(s3_location):
-            print(file_name)
-            dataset = pq.ParquetDataset(s3_prefix + file_name, filesystem=file_system)
+
+def get_clickhouse_connection(host, port):
+    engine = sa.create_engine(
+        'clickhouse://default@{}:{}/default'.format(host, port))
+    return engine.connect()
+
+
+def get_clickhouse_records(host, port, sql):
+    ' runs a clickhouse sql statement and returns dataframe result '
+    conn = get_clickhouse_connection(host, port)
+    try:
+        df = pd.read_sql(sql, conn)
+        return df
+    except Exception:
+        Console().print_exception(theme='solarized-light')
+    return None
+
+
+class ClickhouseDatabase:
+    ''' clickhouse operations
+    '''
+    def show_databases(self):
+        ' show a list of all databases '
+        host, port = get_clickhouse_host_port()
+        sql = 'show databases'
+        df = get_clickhouse_records(host, port, sql)
+        print(df)
+
+    def show_tables(self, database):
+        ' show a list of all databases '
+        host, port = get_clickhouse_host_port()
+        sql = 'show tables from {}'.format(database)
+        df = get_clickhouse_records(host, port, sql)
+        print(df)
 
 
 class Databases:
     def __init__(self):
         self.hive = HiveDatabase()
         self.presto = PrestoDatabase()
+        self.clickhouse = ClickhouseDatabase()
         self.op = OpDatabase()
         self.parquet = ParquetAction()
 
