@@ -59,21 +59,28 @@ uuid joins 2020-09-15
 		Create table with string uuid
 		Create table with binary uuid
 
-Partitioned table desc-formatted
-	Column names
-	# Partition Information
-	# Detaited Table Information
-	Table Parameters:
-	# Storage Information
+[X] Partitioned table desc-formatted
+	[X] Column names
+	[X] Partition Information
+	[X] Detailed Table Information
+	[X] Table Parameters
+	[X] Storage Information
 
-Clustered table desc-formatted
-	Column names
-	# Detailed Table Information
-	Table Parameters:
-	# Storage Information
+[X] Clustered table desc-formatted
+	[X] Column names
+	[X] Detailed Table Information
+	[X] Table Parameters:
+	[X] Storage Information
 
-Create function get_presto_prepare_describe 2020-09-15
-	get_presto_records can execute only 1 sql at a time
-	get_presto_prepare_describe
+[_] Create function get_presto_prepare_describe 2020-09-15
+	[_] get_presto_records can execute only 1 sql at a time
+	[_] get_presto_prepare_describe
 		runs prepare and decribe sequentially using same cursor
 
+[_] Sample of large table 2020-09-27
+	[_] Get list of partitions
+	[_] Get last updated partition
+	[_] Get summary of most recently updated partition
+	[_] Get summary of n most recently updated partitions
+
+[_] Try AWS data-wrangler 2020-09-27

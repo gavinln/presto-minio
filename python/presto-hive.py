@@ -44,6 +44,8 @@ from presto_hive_lib import print_sa_table
 
 from presto_hive_lib import timed
 
+from IPython import embed
+
 
 # Print all syntax highlighting styles
 # from pygments.styles import get_all_styles
@@ -746,11 +748,37 @@ class OpDatabase:
         print_sa_table(new_sa_table)
 
 
+def print_parq_file_info(parq_file):
+    parq_file = pq.ParquetFile(parq_file)
+    print(textwrap.indent(str(parq_file.metadata), prefix='\t'))
+    print(textwrap.indent(str(parq_file.schema), prefix='\t'))
+
+
+class ParquetAction:
+    ''' parquet actions
+    '''
+    def test(self):
+        parq_files = SCRIPT_DIR.glob('*.parq')
+        for file_name in parq_files:
+            print(file_name)
+            print_parq_file_info(file_name)
+
+    def test2(self):
+        client_kwargs = {'endpoint_url': 'http://10.0.0.2:9000'}
+        file_system = s3fs.S3FileSystem(client_kwargs=client_kwargs)
+        s3_location = 's3://example-data/'
+        s3_prefix = 's3://'
+        for file_name in file_system.ls(s3_location):
+            print(file_name)
+            dataset = pq.ParquetDataset(s3_prefix + file_name, filesystem=file_system)
+
+
 class Databases:
     def __init__(self):
         self.hive = HiveDatabase()
         self.presto = PrestoDatabase()
         self.op = OpDatabase()
+        self.parquet = ParquetAction()
 
 
 if __name__ == '__main__':
