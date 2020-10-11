@@ -928,3 +928,8 @@ CREATE TABLE ip_data4 ( name varchar, email varchar, city varchar, state varchar
 insert into ip_data4 values('name1', 'email@co.com', 'city1', 'state1', localtimestamp, 2344, from_hex('eeeeaaaa'), from_hex('20010db8aaaabbbbccccddddeeeeaaaa'));
 ```
 
+## Presto/Hive examples
+
+Create tables using the file ./presto-minio/presto-union-intersect.sql
+
+Query Presto and Hive metadata using ./python/presto-hive.py
