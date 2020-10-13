@@ -43,6 +43,7 @@ def create_airline_table():
     cursor = hive.connect('localhost').cursor()
 
     sql = '''
+
         create external table airline_data (
             Year int,
             Month int,
@@ -75,6 +76,7 @@ def create_airline_table():
             LateAircraftDelay int
         )
         STORED AS PARQUET location 's3a://airline-parq/'
+
     '''
     cursor.execute(sql)
 
