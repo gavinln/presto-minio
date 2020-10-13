@@ -789,17 +789,22 @@ class ParquetAction:
                 print(textwrap.indent(str(dataset.schema), prefix='\t'))
 
 
-def get_clickhouse_connection(host, port):
+def get_clickhouse_engine(host, port):
     engine = sa.create_engine(
         'clickhouse://default@{}:{}/default'.format(host, port))
-    return engine.connect()
+    return engine
+
+
+def execute_clickhouse_sql(host, port, sql):
+    engine = get_clickhouse_engine(host, port)
+    engine.execute(sql)
 
 
 def get_clickhouse_records(host, port, sql):
     ' runs a clickhouse sql statement and returns dataframe result '
-    conn = get_clickhouse_connection(host, port)
+    engine = get_clickhouse_engine(host, port)
     try:
-        df = pd.read_sql(sql, conn)
+        df = pd.read_sql(sql, engine)
         return df
     except Exception:
         Console().print_exception(theme='solarized-light')
@@ -822,6 +827,20 @@ class ClickhouseDatabase:
         sql = 'show tables from {}'.format(database)
         df = get_clickhouse_records(host, port, sql)
         print(df)
+
+    def create_table(self, database):
+        ' show a list of all databases '
+        sql = '''
+        create table temp4
+        (
+            `id` Int64,
+            `grp_code` Int64
+        )
+        ENGINE = MergeTree()
+        ORDER BY id
+        '''
+        host, port = get_clickhouse_host_port()
+        execute_clickhouse_sql(host, port, sql)
 
 
 class Databases:
