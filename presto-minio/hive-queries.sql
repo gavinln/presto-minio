@@ -39,7 +39,7 @@ show tblproperties default.example;
     select * from example;
 
     insert into example
-    values 
+    values
         (1, 'a'),
         (2, 'a'),
         (3, 'a'),
