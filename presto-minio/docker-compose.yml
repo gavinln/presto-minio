@@ -26,7 +26,7 @@ services:
     image: minio/minio
     container_name: minio
     ports:
-      - '9000:9000'
+      - '9001:9001'
     volumes:
       - './minio/data/:/data'
       - './minio/config:/root/.minio'
@@ -34,4 +34,4 @@ services:
       MINIO_ACCESS_KEY: 'V42FCGRVMK24JJ8DHUYG'
       MINIO_SECRET_KEY: 'bKhWxVF3kQoLY9kFmt91l+tDrEoZjqnWXzY9Eza'
       MINIO_API_SELECT_PARQUET: 'on'
-    command: server /data
+    command: server --address ":9001" /data
