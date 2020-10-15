@@ -19,6 +19,7 @@ import sys
 import pandas as pd
 
 import sqlalchemy as sa
+import sqlalchemy.sql.schema as sa_schema
 
 from rich.console import Console
 from rich.syntax import Syntax
@@ -28,6 +29,9 @@ import fire
 import pyarrow.parquet as pq
 from pyarrow import fs
 import s3fs
+
+from clickhouse_sqlalchemy import types as ch_types
+from clickhouse_sqlalchemy import engines
 
 from query_yes_no import query_yes_no
 from presto_hive_lib import get_presto_records
@@ -40,9 +44,12 @@ from presto_hive_lib import get_hive_table_extended
 
 from presto_hive_lib import get_sa_table
 from presto_hive_lib import get_sa_new_table
-from presto_hive_lib import get_sa_metadata
+from presto_hive_lib import get_presto_sa_metadata
 from presto_hive_lib import create_sa_table_from_table
 from presto_hive_lib import print_sa_table
+
+from presto_hive_lib import get_clickhouse_engine
+from presto_hive_lib import get_clickhouse_sa_metadata
 
 from presto_hive_lib import timed
 
@@ -664,6 +671,16 @@ class PrestoDatabase:
         # print(stats)
         print_all(stats)
 
+    def metadata(self, table, schema, catalog):
+        host, port = get_presto_host_port()
+        metadata = get_presto_sa_metadata(host, port, catalog, schema)
+        metadata.reflect(only=[table])
+        for table_name in metadata.tables:
+            print(table_name)
+            tbl = metadata.tables[table_name]
+            for column in tbl.columns:
+                print('\t', column.name, column.type, column.nullable)
+
     def _desc_table(self, table, schema):
         '''
             describe table from hive
@@ -709,7 +726,7 @@ class PrestoDatabase:
 
 
 def check_copy_presto_table(host, port, catalog, schema, old_table, new_table):
-    metadata = get_sa_metadata(host, port, catalog, schema)
+    metadata = get_presto_sa_metadata(host, port, catalog, schema)
     table_names = metadata.bind.table_names()
     if old_table not in table_names:
         sys.exit('Old table {} does not exist'.format(old_table))
@@ -789,20 +806,15 @@ class ParquetAction:
                 print(textwrap.indent(str(dataset.schema), prefix='\t'))
 
 
-def get_clickhouse_engine(host, port):
-    engine = sa.create_engine(
-        'clickhouse://default@{}:{}/default'.format(host, port))
-    return engine
+def execute_clickhouse_sql(host, port, database, sql):
+    engine = get_clickhouse_engine(host, port, database)
+    with engine.connect() as conn:
+        conn.execute(sql)
 
 
-def execute_clickhouse_sql(host, port, sql):
-    engine = get_clickhouse_engine(host, port)
-    engine.execute(sql)
-
-
-def get_clickhouse_records(host, port, sql):
+def get_clickhouse_records(host, port, database, sql):
     ' runs a clickhouse sql statement and returns dataframe result '
-    engine = get_clickhouse_engine(host, port)
+    engine = get_clickhouse_engine(host, port, database)
     try:
         df = pd.read_sql(sql, engine)
         return df
@@ -818,20 +830,32 @@ class ClickhouseDatabase:
         ' show a list of all databases '
         host, port = get_clickhouse_host_port()
         sql = 'show databases'
-        df = get_clickhouse_records(host, port, sql)
+        database = 'system'
+        df = get_clickhouse_records(host, port, database, sql)
         print(df)
 
     def show_tables(self, database):
         ' show a list of all databases '
         host, port = get_clickhouse_host_port()
         sql = 'show tables from {}'.format(database)
-        df = get_clickhouse_records(host, port, sql)
+        df = get_clickhouse_records(host, port, database, sql)
         print(df)
+
+    def metadata(self, table, database):
+        host, port = get_clickhouse_host_port()
+        metadata = get_clickhouse_sa_metadata(host, port, database)
+        metadata.reflect(only=[table])
+        for table_name in metadata.tables:
+            print(table_name)
+            tbl = metadata.tables[table_name]
+            for column in tbl.columns:
+                print('\t', column.name, column.nullable)
+                print('\t\t', column.type.nested_type)
 
     def create_table(self, database):
         ' show a list of all databases '
         sql = '''
-        create table temp4
+        create table temp1
         (
             `id` Int64,
             `grp_code` Int64
@@ -840,7 +864,20 @@ class ClickhouseDatabase:
         ORDER BY id
         '''
         host, port = get_clickhouse_host_port()
-        execute_clickhouse_sql(host, port, sql)
+        database = 'default'
+        execute_clickhouse_sql(host, port, database, sql)
+
+    def create_table2(self, database):
+        host, port = get_clickhouse_host_port()
+        engine = get_clickhouse_engine(host, port, database)
+
+        meta = sa.sql.schema.MetaData()
+        temp = sa_schema.Table('temp3', meta,
+            sa_schema.Column('id', ch_types.Int64),
+            sa_schema.Column('grp_code', ch_types.Nullable(ch_types.Int64)),
+            engines.MergeTree(order_by=('id',))
+        )
+        temp.create(engine)
 
 
 class Databases:

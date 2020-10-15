@@ -130,12 +130,26 @@ def print_sa_table(table):
         print('\t{} {}'.format(column.name, repr(column.type)))
 
 
-def get_sa_metadata(host, port, catalog, schema):
+def get_presto_sa_metadata(host, port, catalog, schema):
     ' get sqlalchemy presto table '
     conn_str = f'presto://{host}:{port}/{catalog}/{schema}'
     engine = sa.create_engine(conn_str)
     metadata = MetaData(bind=engine)
     return metadata
+
+
+def get_clickhouse_engine(host, port, database):
+    engine = sa.create_engine(
+        'clickhouse://default:@{}:{}/{}'.format(host, port, database))
+    return engine
+
+
+def get_clickhouse_sa_metadata(host, port, database):
+    ' get sqlalchemy clickhouse metadata'
+    engine = get_clickhouse_engine(host, port, database)
+    metadata = MetaData(bind=engine)
+    return metadata
+
 
 
 def print_sa_table_names(metadata):
