@@ -671,7 +671,7 @@ class PrestoDatabase:
         # print(stats)
         print_all(stats)
 
-    def metadata(self, table, schema, catalog):
+    def export_metadata(self, table, schema, catalog):
         host, port = get_presto_host_port()
         metadata = get_presto_sa_metadata(host, port, catalog, schema)
         metadata.reflect(only=[table])
@@ -680,6 +680,17 @@ class PrestoDatabase:
             tbl = metadata.tables[table_name]
             for column in tbl.columns:
                 print('\t', column.name, column.type, column.nullable)
+
+        '''
+        table: external_clustered
+        columns:
+            - name: id
+              type: BIGINT
+              nullable: True
+            - name: grp_code
+              type: BIGINT
+              nullable: True
+        '''
 
     def _desc_table(self, table, schema):
         '''
@@ -838,10 +849,12 @@ class ClickhouseDatabase:
         ' show a list of all databases '
         host, port = get_clickhouse_host_port()
         sql = 'show tables from {}'.format(database)
+        sql = 'show tables'
         df = get_clickhouse_records(host, port, database, sql)
         print(df)
 
-    def metadata(self, table, database):
+    def temp_metadata(self, table, database):
+        ' display table metadata '
         host, port = get_clickhouse_host_port()
         metadata = get_clickhouse_sa_metadata(host, port, database)
         metadata.reflect(only=[table])
@@ -850,10 +863,15 @@ class ClickhouseDatabase:
             tbl = metadata.tables[table_name]
             for column in tbl.columns:
                 print('\t', column.name, column.nullable)
-                print('\t\t', column.type.nested_type)
+                # print('\t', column.get_children)
+                if hasattr(column.type, 'nested_type'):
+                    print('\t\t', column.type.__class__)
+                    print('\t\t', column.type.nested_type)
+                else:
+                    print('\t\t', column.type.__class__)
 
-    def create_table(self, database):
-        ' show a list of all databases '
+    def temp_create_table(self, database):
+        ' create a table '
         sql = '''
         create table temp1
         (
@@ -867,7 +885,8 @@ class ClickhouseDatabase:
         database = 'default'
         execute_clickhouse_sql(host, port, database, sql)
 
-    def create_table2(self, database):
+    def temp_create_table2(self, database):
+        ' create a table using sqlalchmey '
         host, port = get_clickhouse_host_port()
         engine = get_clickhouse_engine(host, port, database)
 

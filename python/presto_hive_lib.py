@@ -140,7 +140,8 @@ def get_presto_sa_metadata(host, port, catalog, schema):
 
 def get_clickhouse_engine(host, port, database):
     engine = sa.create_engine(
-        'clickhouse://default:@{}:{}/{}'.format(host, port, database))
+        # 'clickhouse://default:@{}:{}/{}'.format(host, port, database))
+        'clickhouse://default:@{}:{}/'.format(host, port))
     return engine
 
 
