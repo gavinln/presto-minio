@@ -84,3 +84,6 @@ uuid joins 2020-09-15
 	[_] Get summary of n most recently updated partitions
 
 [_] Try AWS data-wrangler 2020-09-27
+
+[_] Validate sql statement in a file 2020-10-15
+	Use explain_validate

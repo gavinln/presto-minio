@@ -88,6 +88,8 @@ describe formatted example;
 
 describe extended example;
 
+describe formatted million_partitioned partition (grp_code=200);
+
 set;  -- get all configuration properties
 
 -- get table counts

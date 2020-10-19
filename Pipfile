@@ -37,6 +37,7 @@ dask = "*"
 ray = "*"
 more-itertools = "*"
 clickhouse-sqlalchemy = "*"
+pyyaml = "*"
 
 [requires]
 python_version = "3.8"

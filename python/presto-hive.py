@@ -15,8 +15,12 @@ import difflib
 import itertools
 import os
 import sys
+import warnings
+from collections import namedtuple
 
 import pandas as pd
+
+import yaml
 
 import sqlalchemy as sa
 import sqlalchemy.sql.schema as sa_schema
@@ -561,6 +565,13 @@ def check_hive_env():
     return os.environ[hive_env]
 
 
+TableColumnInfo = namedtuple('TableColumnInfo', 'name col_type nullable')
+
+def col_info_as_dict(col_info):
+    return {
+        name.replace('col_type', 'type'): val for name, val in col_info._asdict().items()
+    }
+
 class PrestoDatabase:
     ''' display meta data from a presto database
 
@@ -674,23 +685,28 @@ class PrestoDatabase:
     def export_metadata(self, table, schema, catalog):
         host, port = get_presto_host_port()
         metadata = get_presto_sa_metadata(host, port, catalog, schema)
-        metadata.reflect(only=[table])
-        for table_name in metadata.tables:
-            print(table_name)
-            tbl = metadata.tables[table_name]
-            for column in tbl.columns:
-                print('\t', column.name, column.type, column.nullable)
 
-        '''
-        table: external_clustered
-        columns:
-            - name: id
-              type: BIGINT
-              nullable: True
-            - name: grp_code
-              type: BIGINT
-              nullable: True
-        '''
+        with warnings.catch_warnings():
+            # ignore sqlalchemy warnings SAWarning: Did not recognize type
+            warnings.simplefilter('ignore')
+            metadata.reflect(only=[table])
+
+        col_info_list = []
+        table_info = {'table': table, 'columns': col_info_list}
+
+        for table_name in metadata.tables:
+            tbl = metadata.tables[table_name]
+            for idx, column in enumerate(tbl.columns):
+                if not isinstance(column.type, sa.types.NullType):
+                    col_type = column.type
+                else:
+                    col_type = 'UNKNOWN'
+                col_info = TableColumnInfo(str(column.name), str(col_type), column.nullable)
+                col_info_list.append(col_info_as_dict(col_info))
+
+        tbl_yaml = yaml.dump(table_info, sort_keys=False)
+        print(tbl_yaml)
+
 
     def _desc_table(self, table, schema):
         '''
@@ -870,10 +886,73 @@ class ClickhouseDatabase:
                 else:
                     print('\t\t', column.type.__class__)
 
-    def temp_create_table(self, database):
+    def temp_create_table_from_metadata(self, metadata_file, database):
         ' create a table '
+        meta_path = pathlib.Path(metadata_file)
+        if not meta_path.exists() or not meta_path.is_file():
+            sys.exit('{} is not a valid file'.format(meta_path))
+
+        metadata = yaml.load(meta_path.open(), Loader=yaml.SafeLoader)
+
+
+        def get_clickhouse_type(sa_type):
+            clickhouse_types = {
+                'BOOLEAN': ch_types.UInt8,
+                'TINYINT': ch_types.Int8,
+                'SMALLINT': ch_types.Int16,
+                'INTEGER': ch_types.Int32,
+                'BIGINT': ch_types.Int64,
+                'FLOAT': ch_types.Float64,
+                'VARCHAR': ch_types.String
+            }
+            return clickhouse_types.get(sa_type, None)
+
+        def get_clickhouse_sa_columns(metadata):
+            columns = metadata['columns']
+            ch_columns = []
+            for idx, col in enumerate(columns):
+                name = col['name']
+                col_type = col['type'],
+                ch_type = get_clickhouse_type(col['type'])
+                nullable = col['nullable']
+                if idx == 0:
+                    tbl_col = sa_schema.Column(name, ch_type)
+                else:
+                    tbl_col = sa_schema.Column(name, ch_types.Nullable(ch_type))
+                ch_columns.append(tbl_col)
+            return ch_columns
+
+
+        host, port = get_clickhouse_host_port()
+        engine = get_clickhouse_engine(host, port, database)
+        ch_columns = get_clickhouse_sa_columns(metadata)
+
+        first_col_name = ch_columns[0].name
+
+        meta = sa.sql.schema.MetaData()
+        # temp = sa_schema.Table(metadata['table'], meta)
+        temp = sa_schema.Table(metadata['table'], meta)
+        for idx, col in enumerate(ch_columns):
+            temp.append_column(col)
+        temp.append_column(
+            engines.MergeTree(order_by=(first_col_name,)))
+        print(temp)
+        temp.create(engine)
+        return
+
+        temp.append_column(
+            sa_schema.Column('id', ch_types.Int64))
+        temp.append_column(
+            sa_schema.Column('grp_code', ch_types.Nullable(ch_types.Int64)))
+        temp.append_column(
+            engines.MergeTree(order_by=('id',)))
+        temp.create(engine)
+
+
+        return
+
         sql = '''
-        create table temp1
+        create table temp4
         (
             `id` Int64,
             `grp_code` Int64
@@ -891,11 +970,13 @@ class ClickhouseDatabase:
         engine = get_clickhouse_engine(host, port, database)
 
         meta = sa.sql.schema.MetaData()
-        temp = sa_schema.Table('temp3', meta,
-            sa_schema.Column('id', ch_types.Int64),
-            sa_schema.Column('grp_code', ch_types.Nullable(ch_types.Int64)),
-            engines.MergeTree(order_by=('id',))
-        )
+        temp = sa_schema.Table('temp5', meta)
+        temp.append_column(
+            sa_schema.Column('id', ch_types.Int64))
+        temp.append_column(
+            sa_schema.Column('grp_code', ch_types.Nullable(ch_types.Int64)))
+        temp.append_column(
+            engines.MergeTree(order_by=('id',)))
         temp.create(engine)
 
 
