@@ -274,7 +274,14 @@ def get_s3_parquet_file(
     file_system = s3fs.S3FileSystem(
         client_kwargs=client_kwargs)
 
-    dataset = pq.ParquetDataset(s3_location, filesystem=file_system)
+    files = file_system.ls(s3_location)
+    # remove zero sized files if exist
+    # if len(files) > 1:
+    #     new_files = files[:-1]
+    # else:
+    #     new_files = files
+    dataset = pq.ParquetDataset(new_files, filesystem=file_system)
+    # dataset = pq.ParquetDataset(s3_location, filesystem=file_system)
     parq_table = dataset.read()
     pq.write_table(parq_table, parq_file_path)
     parq_path = pathlib.Path(parq_file_path)
