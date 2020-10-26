@@ -1,0 +1,76 @@
+version: "3"
+
+services:
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.1.3-java8
+    volumes:
+      - namenode:/hadoop/dfs/name
+      - './hadoop/core-site.xml:/etc/hadoop/core-site.xml'
+    environment:
+      - CLUSTER_NAME=test
+    env_file:
+      - ./hadoop-hive.env
+    ports:
+      # - "50070:50070"
+      - "9870:9870"
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.1.3-java8
+    volumes:
+      - datanode:/hadoop/dfs/data
+      - './hadoop/core-site.xml:/etc/hadoop/core-site.xml'
+    env_file:
+      - ./hadoop-hive.env
+    environment:
+      # SERVICE_PRECONDITION: "namenode:50070"
+      SERVICE_PRECONDITION: "namenode:9870"
+    ports:
+      # - "50075:50075"
+      - "9864:9864"
+  hive-server:
+    # image: bde2020/hive:2.3.2-postgresql-metastore
+    image: bde2020/hive:2.3.2
+    env_file:
+      - ./hadoop-hive.env
+    environment:
+      HIVE_CORE_CONF_javax_jdo_option_ConnectionURL: "jdbc:postgresql://hive-metastore/metastore"
+      SERVICE_PRECONDITION: "hive-metastore:9083"
+    ports:
+      - "10000:10000"
+  hive-metastore:
+    # image: bde2020/hive:2.3.2-postgresql-metastore
+    image: bde2020/hive:2.3.2
+    env_file:
+      - ./hadoop-hive.env
+    command: /opt/hive/bin/hive --service metastore
+    environment:
+      # SERVICE_PRECONDITION: "namenode:50070 datanode:50075 hive-metastore-postgresql:5432"
+      SERVICE_PRECONDITION: "namenode:9870 datanode:9864 hive-metastore-postgresql:5432"
+    ports:
+      - "9083:9083"
+  hive-metastore-postgresql:
+    image: bde2020/hive-metastore-postgresql:2.3.0
+  presto-coordinator:
+    image: shawnzhu/prestodb:340
+    ports:
+      - "8080:8080"
+    volumes:
+      # - './presto/minio.properties:/usr/lib/presto/etc/catalog/minio.properties'
+      - './presto/minio.properties:/usr/lib/presto/default/etc/catalog/minio.properties'
+  minio:
+    hostname: minio
+    image: minio/minio
+    container_name: minio
+    ports:
+      - '9001:9001'
+    volumes:
+      - './minio/data/:/data'
+      - './minio/config:/root/.minio'
+    environment:
+      MINIO_ACCESS_KEY: 'V42FCGRVMK24JJ8DHUYG'
+      MINIO_SECRET_KEY: 'bKhWxVF3kQoLY9kFmt91l+tDrEoZjqnWXzY9Eza'
+      MINIO_API_SELECT_PARQUET: 'on'
+    command: server --address ":9001" /data
+
+volumes:
+  namenode:
+  datanode:

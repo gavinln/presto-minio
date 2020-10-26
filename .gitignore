@@ -7,6 +7,7 @@
 ansible/playbook.retry
 ansible/roles/
 presto-minio/minio/data/.minio.sys/
+presto-minio/bde2020/docker-hive2/minio
 .mypy_cache/
 .pytype/
 data/
