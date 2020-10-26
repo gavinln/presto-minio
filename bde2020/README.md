@@ -10,6 +10,11 @@ To clone the project type
 git clone https://github.com/big-data-europe/docker-hive.git
 ```
 
-The verion on github has very old Docker containers.
+The version on github has very old Docker containers.
 
 Use the ./docker-hive2 folder for the updated version.
+
+
+Error creating parquet file on S3
+
+https://github.com/big-data-europe/docker-hive/issues/17
