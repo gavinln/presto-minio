@@ -24,9 +24,9 @@ show tables;
     ),
     data as (
         select
-            row_number() over() as id, 
+            row_number() over() as id,
             s.item as grp_code
-        from cycle 
+        from cycle
             cross join unnest(items) as t(item)
             cross join unnest(items) as s(item)
         where s.item <= 500
@@ -46,9 +46,9 @@ show tables;
     ),
     data as (
         select
-            row_number() over() as id, 
+            row_number() over() as id,
             s.item as grp_code
-        from cycle 
+        from cycle
             cross join unnest(items) as t(item)
             cross join unnest(items) as s(item)
         where s.item >= 101 and s.item <= 5100
@@ -174,7 +174,7 @@ show tables;
     group by rollup (tbl)
     ;
 
--- 
+--
     select grp_code, count(*)  -- 2 seconds
     from ft_million_rows
     group by 1
@@ -208,7 +208,7 @@ show tables;
     select cast(id as tinyint) id, cast(grp_code as tinyint) grp_code from million_rows
     ;
 
--- 
+--
     select grp_code, count(*)  -- 6 seconds
     from ft_million_external
     group by 1
@@ -219,11 +219,11 @@ show tables;
  * Optimize data by bucketing (clustered)
  */
 
--- 
-    CREATE TABLE minio.default.external_clustered
+--
+    CREATE TABLE minio.default.ft_million_clustered
     with (
         format = 'parquet',
-        external_location = 's3a://example-data/external-clustered/',
+        external_location = 's3a://example-data/ft-million-clustered/',
         bucketed_by = ARRAY['grp_code'],
         bucket_count = 100
     ) as
@@ -231,8 +231,19 @@ show tables;
     ;
 
     select grp_code, count(*)  -- 4 seconds
-    from external_clustered
+    from ft_million_clustered
     group by 1
+    ;
+
+--
+    CREATE TABLE minio.default.million_clustered
+    with (
+        format = 'parquet',
+        external_location = 's3a://example-data/million-clustered/',
+        bucketed_by = ARRAY['grp_code'],
+        bucket_count = 100
+    ) as
+    select * from million_rows
     ;
 
 -- Count for external table
@@ -244,24 +255,24 @@ show tables;
 -- Count for clustered table
     select count(*)  -- 2.5 seconds
     from (
-        select grp_code, avg(id) from external_clustered where grp_code < 200 group by grp_code
+        select grp_code, avg(id) from ft_million_clustered where grp_code < 200 group by grp_code
     );
 
 -- Approx distinct count
     select count(*)
     from (
         select grp_code, approx_distinct(id)
-        from external_clustered
+        from ft_million_clustered
         group by 1
     );
 
 -- fails with query exceeded per-node user memory limit of 104.0MB
     select grp_code, count(distinct id)
-    from external_clustered
+    from ft_million_clustered
     group by 1
     ;
 
--- drop table external_clustered; 
+-- drop table ft_million_clustered;
 
 /*
  * Different kinds table
@@ -272,10 +283,10 @@ show tables;
 
 -- external table join timing: 1:57
     with join_all as (
-        select ftm.id as f_id, mr.id as m_id
+        select ftm.id as f_id, mi.id as m_id
         from ft_million_external ftm
-            join million_rows mr on
-                ftm.grp_code = mr.grp_code
+            join million_external mi on
+                ftm.grp_code = mi.grp_code
         where
             ftm.grp_code < 201
     )
@@ -285,10 +296,10 @@ show tables;
 
 -- bucketed table join timing: 0:44
     with join_all as (
-        select ftm.id as f_id, mr.id as m_id
-        from external_clustered ftm
-            join million_rows mr on
-                ftm.grp_code = mr.grp_code
+        select ftm.id as f_id, mi.id as m_id
+        from ft_million_clustered ftm
+            join million_clustered mi on
+                ftm.grp_code = mi.grp_code
         where
             ftm.grp_code < 201
     )
@@ -346,6 +357,7 @@ show tables;
     select count(*), sum(a_count), sum(b_count)
     from join_all
     ;
+
 
 /*
  * Distinct counts
@@ -488,6 +500,7 @@ show tables;
     from (
         values
             (true, cast(1 as tinyint), cast(200 as smallint), cast(300000 as integer),
-             cast(4000000000 as bigint), cast(5 as real), cast(6 as double), 'abc')
+             cast(4000000000 as bigint), cast(5 as real), cast(6 as double),
+            cast('abc' as varchar))
     ) as x(boolean_t, tinyint_t, smallint_t, integer_t, bigint_t, real_t, double_t, varchar_t)
     ;

@@ -36,7 +36,8 @@ modin = {extras = ["ray"], version = "*"}
 dask = "*"
 ray = "*"
 more-itertools = "*"
-sqlalchemy-clickhouse = "*"
+clickhouse-sqlalchemy = "*"
+pyyaml = "*"
 
 [requires]
 python_version = "3.8"

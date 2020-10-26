@@ -15,10 +15,15 @@ import difflib
 import itertools
 import os
 import sys
+import warnings
+from collections import namedtuple
 
 import pandas as pd
 
+import yaml
+
 import sqlalchemy as sa
+import sqlalchemy.sql.schema as sa_schema
 
 from rich.console import Console
 from rich.syntax import Syntax
@@ -28,6 +33,9 @@ import fire
 import pyarrow.parquet as pq
 from pyarrow import fs
 import s3fs
+
+from clickhouse_sqlalchemy import types as ch_types
+from clickhouse_sqlalchemy import engines
 
 from query_yes_no import query_yes_no
 from presto_hive_lib import get_presto_records
@@ -40,9 +48,12 @@ from presto_hive_lib import get_hive_table_extended
 
 from presto_hive_lib import get_sa_table
 from presto_hive_lib import get_sa_new_table
-from presto_hive_lib import get_sa_metadata
+from presto_hive_lib import get_presto_sa_metadata
 from presto_hive_lib import create_sa_table_from_table
 from presto_hive_lib import print_sa_table
+
+from presto_hive_lib import get_clickhouse_engine
+from presto_hive_lib import get_clickhouse_sa_metadata
 
 from presto_hive_lib import timed
 
@@ -263,7 +274,14 @@ def get_s3_parquet_file(
     file_system = s3fs.S3FileSystem(
         client_kwargs=client_kwargs)
 
-    dataset = pq.ParquetDataset(s3_location, filesystem=file_system)
+    files = file_system.ls(s3_location)
+    # remove zero sized files if exist
+    # if len(files) > 1:
+    #     new_files = files[:-1]
+    # else:
+    #     new_files = files
+    dataset = pq.ParquetDataset(new_files, filesystem=file_system)
+    # dataset = pq.ParquetDataset(s3_location, filesystem=file_system)
     parq_table = dataset.read()
     pq.write_table(parq_table, parq_file_path)
     parq_path = pathlib.Path(parq_file_path)
@@ -554,6 +572,13 @@ def check_hive_env():
     return os.environ[hive_env]
 
 
+TableColumnInfo = namedtuple('TableColumnInfo', 'name col_type nullable')
+
+def col_info_as_dict(col_info):
+    return {
+        name.replace('col_type', 'type'): val for name, val in col_info._asdict().items()
+    }
+
 class PrestoDatabase:
     ''' display meta data from a presto database
 
@@ -664,6 +689,32 @@ class PrestoDatabase:
         # print(stats)
         print_all(stats)
 
+    def export_metadata(self, table, schema, catalog):
+        host, port = get_presto_host_port()
+        metadata = get_presto_sa_metadata(host, port, catalog, schema)
+
+        with warnings.catch_warnings():
+            # ignore sqlalchemy warnings SAWarning: Did not recognize type
+            warnings.simplefilter('ignore')
+            metadata.reflect(only=[table])
+
+        col_info_list = []
+        table_info = {'table': table, 'columns': col_info_list}
+
+        for table_name in metadata.tables:
+            tbl = metadata.tables[table_name]
+            for idx, column in enumerate(tbl.columns):
+                if not isinstance(column.type, sa.types.NullType):
+                    col_type = column.type
+                else:
+                    col_type = 'UNKNOWN'
+                col_info = TableColumnInfo(str(column.name), str(col_type), column.nullable)
+                col_info_list.append(col_info_as_dict(col_info))
+
+        tbl_yaml = yaml.dump(table_info, sort_keys=False)
+        print(tbl_yaml)
+
+
     def _desc_table(self, table, schema):
         '''
             describe table from hive
@@ -709,7 +760,7 @@ class PrestoDatabase:
 
 
 def check_copy_presto_table(host, port, catalog, schema, old_table, new_table):
-    metadata = get_sa_metadata(host, port, catalog, schema)
+    metadata = get_presto_sa_metadata(host, port, catalog, schema)
     table_names = metadata.bind.table_names()
     if old_table not in table_names:
         sys.exit('Old table {} does not exist'.format(old_table))
@@ -789,17 +840,17 @@ class ParquetAction:
                 print(textwrap.indent(str(dataset.schema), prefix='\t'))
 
 
-def get_clickhouse_connection(host, port):
-    engine = sa.create_engine(
-        'clickhouse://default@{}:{}/default'.format(host, port))
-    return engine.connect()
+def execute_clickhouse_sql(host, port, database, sql):
+    engine = get_clickhouse_engine(host, port, database)
+    with engine.connect() as conn:
+        conn.execute(sql)
 
 
-def get_clickhouse_records(host, port, sql):
+def get_clickhouse_records(host, port, database, sql):
     ' runs a clickhouse sql statement and returns dataframe result '
-    conn = get_clickhouse_connection(host, port)
+    engine = get_clickhouse_engine(host, port, database)
     try:
-        df = pd.read_sql(sql, conn)
+        df = pd.read_sql(sql, engine)
         return df
     except Exception:
         Console().print_exception(theme='solarized-light')
@@ -813,15 +864,127 @@ class ClickhouseDatabase:
         ' show a list of all databases '
         host, port = get_clickhouse_host_port()
         sql = 'show databases'
-        df = get_clickhouse_records(host, port, sql)
+        database = 'system'
+        df = get_clickhouse_records(host, port, database, sql)
         print(df)
 
     def show_tables(self, database):
         ' show a list of all databases '
         host, port = get_clickhouse_host_port()
         sql = 'show tables from {}'.format(database)
-        df = get_clickhouse_records(host, port, sql)
+        sql = 'show tables'
+        df = get_clickhouse_records(host, port, database, sql)
         print(df)
+
+    def temp_metadata(self, table, database):
+        ' display table metadata '
+        host, port = get_clickhouse_host_port()
+        metadata = get_clickhouse_sa_metadata(host, port, database)
+        metadata.reflect(only=[table])
+        for table_name in metadata.tables:
+            print(table_name)
+            tbl = metadata.tables[table_name]
+            for column in tbl.columns:
+                print('\t', column.name, column.nullable)
+                # print('\t', column.get_children)
+                if hasattr(column.type, 'nested_type'):
+                    print('\t\t', column.type.__class__)
+                    print('\t\t', column.type.nested_type)
+                else:
+                    print('\t\t', column.type.__class__)
+
+    def temp_create_table_from_metadata(self, metadata_file, database):
+        ' create a table '
+        meta_path = pathlib.Path(metadata_file)
+        if not meta_path.exists() or not meta_path.is_file():
+            sys.exit('{} is not a valid file'.format(meta_path))
+
+        metadata = yaml.load(meta_path.open(), Loader=yaml.SafeLoader)
+
+
+        def get_clickhouse_type(sa_type):
+            clickhouse_types = {
+                'BOOLEAN': ch_types.UInt8,
+                'TINYINT': ch_types.Int8,
+                'SMALLINT': ch_types.Int16,
+                'INTEGER': ch_types.Int32,
+                'BIGINT': ch_types.Int64,
+                'FLOAT': ch_types.Float64,
+                'VARCHAR': ch_types.String
+            }
+            return clickhouse_types.get(sa_type, None)
+
+        def get_clickhouse_sa_columns(metadata):
+            columns = metadata['columns']
+            ch_columns = []
+            for idx, col in enumerate(columns):
+                name = col['name']
+                col_type = col['type'],
+                ch_type = get_clickhouse_type(col['type'])
+                nullable = col['nullable']
+                if idx == 0:
+                    tbl_col = sa_schema.Column(name, ch_type)
+                else:
+                    tbl_col = sa_schema.Column(name, ch_types.Nullable(ch_type))
+                ch_columns.append(tbl_col)
+            return ch_columns
+
+
+        host, port = get_clickhouse_host_port()
+        engine = get_clickhouse_engine(host, port, database)
+        ch_columns = get_clickhouse_sa_columns(metadata)
+
+        first_col_name = ch_columns[0].name
+
+        meta = sa.sql.schema.MetaData()
+        # temp = sa_schema.Table(metadata['table'], meta)
+        temp = sa_schema.Table(metadata['table'], meta)
+        for idx, col in enumerate(ch_columns):
+            temp.append_column(col)
+        temp.append_column(
+            engines.MergeTree(order_by=(first_col_name,)))
+        print(temp)
+        temp.create(engine)
+        return
+
+        temp.append_column(
+            sa_schema.Column('id', ch_types.Int64))
+        temp.append_column(
+            sa_schema.Column('grp_code', ch_types.Nullable(ch_types.Int64)))
+        temp.append_column(
+            engines.MergeTree(order_by=('id',)))
+        temp.create(engine)
+
+
+        return
+
+        sql = '''
+        create table temp4
+        (
+            `id` Int64,
+            `grp_code` Int64
+        )
+        ENGINE = MergeTree()
+        ORDER BY id
+        '''
+        host, port = get_clickhouse_host_port()
+        database = 'default'
+        execute_clickhouse_sql(host, port, database, sql)
+
+    def temp_create_table2(self, database):
+        ' create a table using sqlalchmey '
+        host, port = get_clickhouse_host_port()
+        engine = get_clickhouse_engine(host, port, database)
+
+        meta = sa.sql.schema.MetaData()
+        temp = sa_schema.Table('temp5', meta)
+        temp.append_column(
+            sa_schema.Column('id', ch_types.Int64))
+        temp.append_column(
+            sa_schema.Column('grp_code', ch_types.Nullable(ch_types.Int64)))
+        temp.append_column(
+            engines.MergeTree(order_by=('id',)))
+        temp.create(engine)
 
 
 class Databases:

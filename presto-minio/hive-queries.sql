@@ -39,7 +39,7 @@ show tblproperties default.example;
     select * from example;
 
     insert into example
-    values 
+    values
         (1, 'a'),
         (2, 'a'),
         (3, 'a'),
@@ -87,6 +87,8 @@ describe example;
 describe formatted example;
 
 describe extended example;
+
+describe formatted million_partitioned partition (grp_code=200);
 
 set;  -- get all configuration properties
 
