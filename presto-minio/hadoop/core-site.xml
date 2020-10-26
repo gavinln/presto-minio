@@ -82,7 +82,7 @@
         <name>hadoop.proxyuser.hive.hosts</name>
         <value>*</value>
     </property>
-  
+
     <property>
         <name>hadoop.proxyuser.hive.groups</name>
         <value>*</value>
@@ -107,7 +107,7 @@
 
     <property>
         <name>fs.s3a.endpoint</name>
-        <value>http://minio:9000</value>
+        <value>http://minio:9001</value>
     </property>
 
     <property>
