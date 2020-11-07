@@ -274,7 +274,7 @@ def get_s3_parquet_file(
     file_system = s3fs.S3FileSystem(
         client_kwargs=client_kwargs)
 
-    files = file_system.ls(s3_location)
+    new_files = file_system.ls(s3_location)
     # remove zero sized files if exist
     # if len(files) > 1:
     #     new_files = files[:-1]
@@ -670,8 +670,7 @@ class PrestoDatabase:
         print(create_stmt)
 
     def show_create_view(self, table, schema, catalog):
-        '''
-            show create view
+        ''' show create view
         '''
         sql = 'show create view {}.{}.{}'.format(catalog, schema, table)
         host, port = get_presto_host_port()
@@ -681,7 +680,7 @@ class PrestoDatabase:
         print(create_stmt)
 
     def show_stats(self, table, schema, catalog):
-        '''
+        ''' show table statistics
         '''
         sql = 'show stats for {}.{}.{}'.format(catalog, schema, table)
         host, port = get_presto_host_port()
@@ -690,6 +689,8 @@ class PrestoDatabase:
         print_all(stats)
 
     def export_metadata(self, table, schema, catalog):
+        ''' export table metadata
+        '''
         host, port = get_presto_host_port()
         metadata = get_presto_sa_metadata(host, port, catalog, schema)
 
