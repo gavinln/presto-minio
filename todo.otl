@@ -7,39 +7,38 @@
 	[_] Setup Netflix S3 reader
 	[_] Read subset Parquet using Netflix S3 reader
 
-[_] Add sqlparse to Ansible Python library install files
-	: https://github.com/andialbrecht/sqlparse
-
 [X] Tables on Hive 2020-08-02
 	[X] Create using Presto
 	[X] Create using Hive
-
-[_] Read S3 parquet file 2020-08-23
-	[_] Use dask
-	[_] Use boto
-	[_] Use S3FS with pyarrow
-	[_] Use data wrangler
-		https://github.com/awslabs/aws-data-wrangler
-
-[_] Clean up presto_hive.py 2020-09-05
-	[_] Move reusable functions to presto_hive_lib.py
-	[_] Support environment variables for presto/hive conenctions
-	: DBM - dbmeta.py
-		DBM_PRESTO
-		DBM_HIVE
-	
-[_] Use smallest Presto data type 2020-09-05
-	[X] Create file called presto-efficient-memory.py
-	[X] Get all Presto data types from documentation
-	[X] Get size of each Presto data type
-	[X] Get max, min from table
-	[_] Create view with smallest data type from table
 
 [X] Sqlalchemy
 	[X] Connect to Presto
 	[X] Select from table
 	[X] Create table
 	[X] Insert into newly created table
+
+[X] Partitioned table desc-formatted
+	[X] Column names
+	[X] Partition Information
+	[X] Detailed Table Information
+	[X] Table Parameters
+	[X] Storage Information
+
+[X] Clustered table desc-formatted
+	[X] Column names
+	[X] Detailed Table Information
+	[X] Table Parameters:
+	[X] Storage Information
+
+[_] Add sqlparse to Ansible Python library install files
+	: https://github.com/andialbrecht/sqlparse
+
+[_] Use smallest Presto data type 2020-09-05
+	[X] Create file called presto-efficient-memory.py
+	[X] Get all Presto data types from documentation
+	[X] Get size of each Presto data type
+	[X] Get max, min from table
+	[_] Create view with smallest data type from table
 
 [_] Remove HDFS port 8020 from presto-minio
 	Difficult to connect to hdfs
@@ -59,18 +58,12 @@ uuid joins 2020-09-15
 		Create table with string uuid
 		Create table with binary uuid
 
-[X] Partitioned table desc-formatted
-	[X] Column names
-	[X] Partition Information
-	[X] Detailed Table Information
-	[X] Table Parameters
-	[X] Storage Information
-
-[X] Clustered table desc-formatted
-	[X] Column names
-	[X] Detailed Table Information
-	[X] Table Parameters:
-	[X] Storage Information
+[_] Clean up presto_hive.py 2020-09-05
+	[_] Move reusable functions to presto_hive_lib.py
+	[_] Support environment variables for presto/hive conenctions
+	: DBM - dbmeta.py
+		DBM_PRESTO
+		DBM_HIVE
 
 [_] Create function get_presto_prepare_describe 2020-09-15
 	[_] get_presto_records can execute only 1 sql at a time
