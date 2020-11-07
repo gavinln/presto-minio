@@ -508,6 +508,20 @@ with (
 insert into customer_parq2 select * from customer_parq;
 ```
 
+## Alluxio
+
+https://www.alluxio.io/blog/getting-started-with-the-alluxio-presto-sandbox/
+
+docker-compose.yml
+presto-ports:
+- '8080:8080' - http://10.0.0.2:8080/ui/login.html
+hadoop-ports:
+- '10000:10000' - http://10.0.0.2:10000/
+- '8020:8020'
+- '9083:9083'
+minio-ports:
+- '9001:9001' - http://10.0.0.2:9001/
+
 ## Spark
 
 ### Get project
