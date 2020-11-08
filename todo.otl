@@ -65,6 +65,10 @@ uuid joins 2020-09-15
 		DBM_PRESTO
 		DBM_HIVE
 
+[X] Get metadata from Hive tables 2020-11-07
+	[X] Add function get_hive_sa_metadata
+	[X] Add function to Hive export_metadata
+
 [_] Create function get_presto_prepare_describe 2020-09-15
 	[_] get_presto_records can execute only 1 sql at a time
 	[_] get_presto_prepare_describe
@@ -80,3 +84,7 @@ uuid joins 2020-09-15
 
 [_] Validate sql statement in a file 2020-10-15
 	Use explain_validate
+
+[_] Check Presto catalog and schema 2020-11-07
+	Add check presto catalog to call functions
+	Add check presto schema to call functions
