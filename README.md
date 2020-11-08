@@ -836,6 +836,38 @@ aws --endpoint=http://10.0.0.2:9000/ s3 ls
 
 [Python datasketch](https://github.com/ekzhu/datasketch)
 
+## Clickhouse
+
+1. Connect to Clickhouse
+
+```
+clickhouse-client -h 10.0.0.2 --highlight 0
+```
+
+2. Select database
+
+```
+use default
+```
+
+3. List tables
+
+```
+show tables
+```
+
+4. Load parquet data into clickhouse
+
+```
+cat ft_million_clustered.parq | clickhouse-client -h 10.0.0.2 --query="INSERT INTO ft_million_clustered FORMAT Parquet"
+```
+
+5. Get the number of rows in the table
+
+```
+select count(*) from ft_million_clustered;
+```
+
 ## Links
 
 1. [Presto releases][1000]
@@ -947,3 +979,4 @@ insert into ip_data4 values('name1', 'email@co.com', 'city1', 'state1', localtim
 Create tables using the file ./presto-minio/presto-union-intersect.sql
 
 Query Presto and Hive metadata using ./python/presto-hive.py
+

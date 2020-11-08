@@ -969,13 +969,12 @@ class ClickhouseDatabase:
 
         meta = sa.sql.schema.MetaData()
         # temp = sa_schema.Table(metadata['table'], meta)
-        temp = sa_schema.Table(metadata['table'], meta)
+        new_table = sa_schema.Table(metadata['table'], meta)
         for idx, col in enumerate(ch_columns):
-            temp.append_column(col)
-        temp.append_column(
+            new_table.append_column(col)
+        new_table.append_column(
             engines.MergeTree(order_by=(first_col_name,)))
-        print(temp)
-        temp.create(engine)
+        new_table.create(engine)
         return
 
         temp.append_column(
