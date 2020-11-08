@@ -138,6 +138,14 @@ def get_presto_sa_metadata(host, port, catalog, schema):
     return metadata
 
 
+def get_hive_sa_metadata(host, port, database):
+    ' get sqlalchemy presto table '
+    conn_str = f'hive://{host}:{port}/{database}'
+    engine = sa.create_engine(conn_str)
+    metadata = MetaData(bind=engine)
+    return metadata
+
+
 def get_clickhouse_engine(host, port, database):
     engine = sa.create_engine(
         # 'clickhouse://default:@{}:{}/{}'.format(host, port, database))

@@ -48,6 +48,7 @@ from presto_hive_lib import get_hive_table_extended
 
 from presto_hive_lib import get_sa_table
 from presto_hive_lib import get_sa_new_table
+from presto_hive_lib import get_hive_sa_metadata
 from presto_hive_lib import get_presto_sa_metadata
 from presto_hive_lib import create_sa_table_from_table
 from presto_hive_lib import print_sa_table
@@ -532,6 +533,35 @@ class HiveDatabase:
         else:
             print('Cannot find file for table {}'.format(table))
 
+    def export_metadata(self, table, database=None):
+        ''' export table metadata
+        '''
+        if database is not None:
+            database = check_hive_database(database)
+        host, port = get_hive_host_port()
+        metadata = get_hive_sa_metadata(host, port, database)
+
+        with warnings.catch_warnings():
+            # ignore sqlalchemy warnings SAWarning: Did not recognize type
+            warnings.simplefilter('ignore')
+            metadata.reflect(only=[table])
+
+        col_info_list = []
+        table_info = {'table': table, 'columns': col_info_list}
+
+        for table_name in metadata.tables:
+            tbl = metadata.tables[table_name]
+            for idx, column in enumerate(tbl.columns):
+                if not isinstance(column.type, sa.types.NullType):
+                    col_type = column.type
+                else:
+                    col_type = 'UNKNOWN'
+                col_info = TableColumnInfo(str(column.name), str(col_type), column.nullable)
+                col_info_list.append(col_info_as_dict(col_info))
+
+        tbl_yaml = yaml.dump(table_info, sort_keys=False)
+        print(tbl_yaml)
+
 
 def display_df_all(df):
     max_rows = 1000
@@ -541,7 +571,7 @@ def display_df_all(df):
         print(df)
 
 
-def check_presto_catalogs(catalog):
+def check_presto_catalog(catalog):
     ' returns valid catalog or raises error if not valid '
     host, port = get_presto_host_port()
     catalogs = get_presto_catalogs(host, port)
@@ -627,7 +657,7 @@ class PrestoDatabase:
     def show_schemas(self, catalog):
         ''' show schemas
         '''
-        valid_catalog = check_presto_catalogs(catalog)
+        valid_catalog = check_presto_catalog(catalog)
         sql = 'show schemas from {}'.format(valid_catalog)
         host, port = get_presto_host_port()
         catalogs = get_presto_records(host, port, sql)
