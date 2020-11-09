@@ -38,6 +38,7 @@ ray = "*"
 more-itertools = "*"
 clickhouse-sqlalchemy = "*"
 pyyaml = "*"
+duckdb = "*"
 
 [requires]
 python_version = "3.8"
