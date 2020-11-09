@@ -953,6 +953,7 @@ class ClickhouseDatabase:
                 col_type = col['type'],
                 ch_type = get_clickhouse_type(col['type'])
                 nullable = col['nullable']
+                # make the first column non-nullable (needed for Clickhouse)
                 if idx == 0:
                     tbl_col = sa_schema.Column(name, ch_type)
                 else:
@@ -984,7 +985,6 @@ class ClickhouseDatabase:
         temp.append_column(
             engines.MergeTree(order_by=('id',)))
         temp.create(engine)
-
 
         return
 

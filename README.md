@@ -827,7 +827,7 @@ Setup up AWS cli
 
 ```
 export AWS_CONFIG_FILE=$(realpath ./do_not_checkin/credentials-minio)
-aws --endpoint=http://10.0.0.2:9000/ s3 ls
+aws --endpoint=http://10.0.0.2:9001/ s3 ls
 ```
 
 [Metaflow S3](https://docs.metaflow.org/metaflow/data#data-in-s-3-metaflow-s3)
