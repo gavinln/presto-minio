@@ -903,7 +903,14 @@ class ClickhouseDatabase:
         ' show a list of all databases '
         host, port = get_clickhouse_host_port()
         sql = 'show tables from {}'.format(database)
-        sql = 'show tables'
+        df = get_clickhouse_records(host, port, database, sql)
+        print(df)
+
+    def show_version(self):
+        ' DOES NOT WORK: show clickhouse server version '
+        host, port = get_clickhouse_host_port()
+        sql = 'select version() as ver'
+        database = 'system'
         df = get_clickhouse_records(host, port, database, sql)
         print(df)
 
