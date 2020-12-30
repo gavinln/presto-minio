@@ -148,12 +148,15 @@ def get_formatted_value(formatter, value):
 
 
 def print_name_value_dict(name_value, formatter=None):
+    if len(name_value) == 0:
+        return
     max_name_len = max(len(name) for name in name_value)
     if max_name_len > 40:
         max_name_len = 40
     value_format = {} if formatter is None else formatter
-    for name, value in name_value.items():
-        if name in value_format and formatter is not None:
+    for raw_name, value in name_value.items():
+        name = raw_name.strip()
+        if name in value_format:
             value_formatter = formatter[name]
             formatted_value = get_formatted_value(value_formatter, value)
         else:
@@ -163,7 +166,11 @@ def print_name_value_dict(name_value, formatter=None):
 
 
 def dataframe_to_dict(df):
-    return dict(df.iloc[:, [0, 1]].to_records(index=False))
+    if not df.empty and df.columns.size >= 2:
+        df_dict = dict(df.iloc[:, [0, 1]].to_records(index=False))
+    else:
+        df_dict = {}
+    return df_dict
 
 
 class HeaderDataFrame:
@@ -171,6 +178,13 @@ class HeaderDataFrame:
     def __init__(self, header, dataframe):
         self.header = header
         self.dataframe = dataframe
+
+    def __str__(self):
+        out = ''
+        out += self.header
+        out += str(self.dataframe)
+        return out
+
 
 
 def _srs_match_index(srs, match_str):
@@ -209,17 +223,19 @@ def _remove_empty_rows_cols(df):
     return _remove_empty_rows(_remove_empty_cols(df))
 
 
-def _print_clean_name_value_df(df):
+def _print_clean_name_value_df(df, formatter=None):
     name_value = dataframe_to_dict(df)
-    print_name_value_dict(name_value)
+    print_name_value_dict(name_value, formatter)
 
 
 def _get_header_dataframes(df):
     col_names = df.col_name.str.strip()
     matches = [
-        '# col_name', '# Partition Information',
+        '# col_name',
+        '# Partition Information',
         '# Detailed Table Information',
-        'Table Parameters:', '# Storage Information',
+        'Table Parameters:',
+        '# Storage Information',
         'Storage Desc Params:'
     ]
     match_idx_list = [
@@ -489,12 +505,18 @@ class HiveDatabase:
         header_dataframes = _desc_formatted(
             host, port, table, database)
 
-        for hdf in header_dataframes:
+        formatter = {
+            'numRows': lambda x: '{:,d}'.format(int(x)),
+            'rawDataSize': lambda x: '{:,d}'.format(int(x)),
+            'totalSize': lambda x: '{:,d}'.format(int(x))
+        }
+        for idx, hdf in enumerate(header_dataframes):
+            # print(idx); print(hdf)
             header, dataframe = hdf.header, hdf.dataframe
             print()
             print(header)
             df_clean = _remove_empty_rows_cols(dataframe)
-            _print_clean_name_value_df(df_clean)
+            _print_clean_name_value_df(df_clean, formatter)
 
     def show_table_location(self, table, database=None):
         ''' show table file location if exist

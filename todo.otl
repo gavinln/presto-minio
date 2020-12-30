@@ -85,6 +85,9 @@ uuid joins 2020-09-15
 [_] Validate sql statement in a file 2020-10-15
 	Use explain_validate
 
+[_] Remove comments from sql statement 2020-11-26
+	Create view and run show create view
+
 [_] Check Presto catalog and schema 2020-11-07
 	Add check presto catalog to call functions
 	Add check presto schema to call functions

@@ -11,7 +11,7 @@
 -- https://cwiki.apache.org/confluence/display/Hive/Home
 -- https://cwiki.apache.org/confluence/display/Hive/LanguageManual+DDL
 
--- show commands 0 parameters
+-- 
 show tables;
 show compactions;
 show transactions;
@@ -129,5 +129,5 @@ set;  -- get all configuration properties
     ;
 
     insert into parq_compression_gzip
-    select * from million_rows
+    select * from ft_million_rows
     ;
