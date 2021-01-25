@@ -688,6 +688,7 @@ class PrestoDatabase:
     def show_tables(self, schema, catalog):
         ''' show tables
         '''
+        valid_catalog = check_presto_catalog(catalog)
         sql = 'show tables from {}.{}'.format(catalog, schema)
         host, port = get_presto_host_port()
         tables = get_presto_records(host, port, sql)
