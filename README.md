@@ -70,6 +70,14 @@ sudo chown vagrant:vagrant /data
 sudo apt install libsasl2-dev 
 ```
 
+### Download Presto CLI
+
+1. Download the Presto CLI from here
+https://prestodb.io/docs/current/installation/cli.html
+
+2. Rename the file to `presto-cli.jar`
+
+3. java -jar presto-cli.jar
 
 ## Use Presto, Minio and Hive
 
@@ -110,6 +118,8 @@ docker-compose exec hadoop hive --version
 ```
 
 8. Start the cli
+
+https://repo1.maven.org/maven2/io/trino/trino-cli/353/trino-cli-353-executable.jar
 
 ```
 java -jar ~/presto-cli.jar

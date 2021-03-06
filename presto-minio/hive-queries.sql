@@ -12,6 +12,7 @@
 -- https://cwiki.apache.org/confluence/display/Hive/LanguageManual+DDL
 
 -- 
+select version();
 show tables;
 show compactions;
 show transactions;
@@ -69,14 +70,6 @@ show tblproperties default.example;
     select * from partition_example;
 
     show partitions partition_example;
-
-
-    CREATE TABLE billion_clustered (
-        id int,
-        grp_code int
-    )
-    clustered by (grp_code) into 100 buckets
-    ;
 
     show tables;
 

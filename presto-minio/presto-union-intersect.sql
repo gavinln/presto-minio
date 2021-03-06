@@ -1,8 +1,12 @@
 -- botrignt Tnew
 
--- ssh gavinsvr
--- cd ~/ws/presto-minio/presto-minio
--- java -jar presto-cli.jar
+/*
+ssh gavinsvr
+cd ~/ws/presto-minio/presto-minio
+java -jar presto-cli.jar
+*/
+
+/usr/lib/presto/lib
 
 show catalogs;
 show schemas from minio;
