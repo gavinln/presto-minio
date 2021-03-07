@@ -1,0 +1,3 @@
+-- only one query may be possible with clickhouse-local
+-- multiple may be possible with clickhouse-client
+SELECT avg(id), avg(grp_code) FROM table
