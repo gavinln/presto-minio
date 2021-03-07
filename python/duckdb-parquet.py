@@ -1,7 +1,13 @@
+''' Example of querying parquet files using pandas and duckdb
+'''
 from pathlib import Path
 
+from contextlib import contextmanager
+
+import numpy as np
 import pyarrow.parquet as pq
 import duckdb
+import time
 
 from IPython import embed
 
@@ -9,21 +15,63 @@ from IPython import embed
 SCRIPT_DIR = Path(__file__).parent.resolve()
 
 
-def process_ft_million_clustered():
-    parq_file_name = 'ft_million_clustered.parq'
-    parq_file = SCRIPT_DIR / parq_file_name
-    tbl = pq.read_table(parq_file)
-    df = tbl.to_pandas()
-    print(df.agg({'id': 'mean', 'grp_code': 'mean'}))
+@contextmanager
+def elapsed_time(message):
+    start_time = time.time()
+    yield
+    elapsed = time.time() - start_time
+    print(f'{message}: {elapsed:.0f} seconds')
 
-    db_file = ':memory:'
-    con = duckdb.connect(database=db_file, read_only=False)
-    sql = "select avg(id), avg(grp_code) from parquet_scan('{}')".format(
-        parq_file)
+
+@contextmanager
+def parquet_to_pandas(parquet_file):
+    with elapsed_time('Elasped'):
+        tbl = pq.read_table(parquet_file)
+        df = tbl.to_pandas()
+        yield df
+        del df
+
+
+@contextmanager
+def parquet_to_duckdb(parquet_file):
+    with elapsed_time('Elasped'):
+        db_file = ':memory:'
+        con = duckdb.connect(database=db_file, read_only=False)
+        yield con
+        con.close()
+
+
+def execute_print_sql(con, sql):
     con.execute(sql)
     for row in con.fetchall():
         print(row)
-    con.close()
+
+
+def process_ft_million_clustered():
+    parq_file_name = 'ft_million_clustered.parq'
+    parq_file = SCRIPT_DIR / parq_file_name
+    # breakpoint()
+
+    with parquet_to_pandas(parq_file) as df:
+        print(df.agg({'id': np.mean, 'grp_code': np.mean}))
+        print(df.agg({'id': np.std, 'grp_code': np.std}))
+
+
+    with parquet_to_duckdb(parq_file) as con:
+        sql = '''
+            create table temp_parq as select id, grp_code
+            from parquet_scan('{}')'''.format(parq_file)
+        execute_print_sql(con, sql)
+
+        sql = '''
+            select avg(id), avg(grp_code)
+            from temp_parq'''
+        execute_print_sql(con, sql)
+
+        sql = '''
+            select stddev_pop(id), stddev_pop(grp_code)
+            from temp_parq'''
+        execute_print_sql(con, sql)
 
 
 def process_airline_parquet():
@@ -46,8 +94,8 @@ def process_airline_parquet():
 
 
 def main():
-    # process_ft_million_clustered()
-    process_airline_parquet()
+    process_ft_million_clustered()
+    # process_airline_parquet()
 
 
 if __name__ == '__main__':

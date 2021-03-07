@@ -297,8 +297,9 @@ def get_s3_parquet_file(
     #     new_files = files[:-1]
     # else:
     #     new_files = files
-    dataset = pq.ParquetDataset(new_files, filesystem=file_system)
-    # dataset = pq.ParquetDataset(s3_location, filesystem=file_system)
+
+    # dataset = pq.ParquetDataset(new_files, filesystem=file_system)
+    dataset = pq.ParquetDataset(s3_location, filesystem=file_system)
     parq_table = dataset.read()
     pq.write_table(parq_table, parq_file_path)
     parq_path = pathlib.Path(parq_file_path)
@@ -316,7 +317,6 @@ class HiveDatabase:
         presto-hive.py hive show-create-table customer_text default
         presto-hive.py hive show-table-extended customer_text default
         presto-hive.py hive show-tblproperties customer_text --database default
-
         presto-hive.py hive desc-formatted customer_text --database default
     '''
 
@@ -326,36 +326,32 @@ class HiveDatabase:
         databases = get_hive_databases(host, port)
         print(databases)
 
-    def show_tables(self, database=None):
+    def show_tables(self, database):
         ''' list all tables
         '''
-        if database is not None:
-            database = check_hive_database(database)
+        database_valid = check_hive_database(database)
         sql = 'show tables'
         host, port = get_hive_host_port()
         tables = get_hive_records_database_like_table(
-            host, port, sql, database)
+            host, port, sql, database_valid)
         print_all(tables)
 
-    def show_table(self, table, database=None):
+    def show_table(self, table, database):
         ''' show table
         '''
-        if database is not None:
-            database = check_hive_database(database)
+        database_valid = check_hive_database(database)
         sql = 'show tables'
         host, port = get_hive_host_port()
         tables = get_hive_records_database_like_table(
-            host, port, sql, database, table)
+            host, port, sql, database_valid, table)
         print(tables)
 
-    def show_table_extended(self, table, database=None):
+    def show_table_extended(self, table, database):
+        ''' show more table info
         '''
-            validate table
-        '''
-        if database is not None:
-            database = check_hive_database(database)
+        database_valid = check_hive_database(database)
         host, port = get_hive_host_port()
-        df = get_hive_table_extended(host, port, table, database)
+        df = get_hive_table_extended(host, port, table, database_valid)
         if df.size == 0:
             print('table {} not found'.format(table))
         else:
@@ -365,16 +361,15 @@ class HiveDatabase:
                     name_value[items[0]] = ':'.join(items[1:])
             print(pd.Series(name_value))
 
-    def show_create_table(self, table, database=None):
+    def show_create_table(self, table, database):
         '''
             validate table
         '''
-        if database is not None:
-            database = check_hive_database(database)
+        database_valid = check_hive_database(database)
         sql = 'show create table'
         host, port = get_hive_host_port()
         table = get_hive_records_database_dot_table(
-            host, port, sql, database, table)
+            host, port, sql, database_valid, table)
         lines = table.createtab_stmt.values
         console = Console()
         # print('\n'.join(lines))
@@ -537,9 +532,7 @@ class HiveDatabase:
         if database is not None:
             database = check_hive_database(database)
         host, port = get_hive_host_port()
-        # client_kwargs = {'endpoint_url': 'http://10.0.0.2:9000'}
         client_kwargs = get_s3_client_kwargs()
-        # client_kwargs = {}
         table_location = get_hive_table_location(host, port, table, database)
         print('hive table {}, location {}'.format(table, table_location))
         if table_location:
