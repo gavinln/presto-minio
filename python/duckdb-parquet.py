@@ -58,6 +58,7 @@ def process_ft_million_clustered():
 
 
     with parquet_to_duckdb(parq_file) as con:
+        # create view temp_parq is slower than create table
         sql = '''
             create table temp_parq as select id, grp_code
             from parquet_scan('{}')'''.format(parq_file)
