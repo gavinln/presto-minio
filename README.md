@@ -839,3 +839,6 @@ Create tables using the file ./presto-minio/presto-union-intersect.sql
 
 Query Presto and Hive metadata using ./python/presto-hive.py
 
+### Update Hive versions in Docker
+
+https://github.com/fredrikhgrelland/docker-hive
