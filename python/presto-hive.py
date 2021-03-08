@@ -77,16 +77,16 @@ def pairwise(iterable):
 
 def get_hive_host_port():
     host = '10.0.0.2'
-    # host = 'hive.liftoff.io'
+    host = 'hive.liftoff.io'
     port = 10000
     return host, port
 
 
 def get_presto_host_port():
     host = '10.0.0.2'
-    # host = 'presto.liftoff.io'
+    host = 'presto.liftoff.io'
     port = 8080
-    # port = 8889
+    port = 8889
     return host, port
 
 
@@ -98,6 +98,7 @@ def get_clickhouse_host_port():
 
 def get_s3_client_kwargs():
     client_kwargs = {'endpoint_url': 'http://10.0.0.2:9001'}
+    client_kwargs = {}
     return client_kwargs
 
 
@@ -1007,6 +1008,54 @@ class Databases:
         self.clickhouse = ClickhouseDatabase()
         self.op = OpDatabase()
         self.parquet = ParquetAction()
+
+
+def to_string_ljustify(df):
+    ''' pandas dataframe to a string with left justified text
+    '''
+    col_formatters = []
+    for col_name in df.columns:
+        col = df[col_name]
+        if col.dtype == 'object':
+            col_len_max = col.apply(len).max()
+            col_format = '{{:<{}s}}'.format(col_len_max)
+            col_formatters.append(col_format.format)
+        else:
+            col_formatters.append(None)
+
+    # left justify strings
+    return df.to_string(index=False, formatters=col_formatters)
+
+    # default printing is right justified
+    # return df.to_string(index=False)
+
+
+def test_to_string_ljustify():
+    d = {
+        'c1': ['1', '222', '3'],
+        'c2': [4, 25, 6],
+        'c3': ['111', '2', '3']
+    }
+    df = pd.DataFrame(d)
+
+    out = '''
+
+  c1  c2   c3
+ 1     4  111
+ 222  25  2
+ 3     6  3'''
+
+    def compare_line_by_line(item1, item2):
+        lines1 = item1.split('\n')
+        lines2 = item2.split('\n')
+        assert len(lines1) == len(lines2), 'Does not match'
+
+        for l1, l2 in zip(lines1, lines2):
+            assert l1.strip() == l2.strip(), f'mismatch ({l1}), ({l2})'
+
+    out_str = out.replace('\n\n', '')
+    out_df = to_string_ljustify(df)
+    compare_line_by_line(out_str, out_df)
 
 
 if __name__ == '__main__':
