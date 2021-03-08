@@ -31,7 +31,7 @@ from rich.syntax import Syntax
 import fire
 
 import pyarrow.parquet as pq
-from pyarrow import fs
+# from pyarrow import fs
 import s3fs
 
 from clickhouse_sqlalchemy import types as ch_types
@@ -58,13 +58,11 @@ from presto_hive_lib import get_clickhouse_sa_metadata
 
 from presto_hive_lib import timed
 
-from IPython import embed
-
+# from IPython import embed
 
 # Print all syntax highlighting styles
 # from pygments.styles import get_all_styles
 # print(list(get_all_styles()))
-
 
 SCRIPT_DIR = pathlib.Path(__file__).parent.resolve()
 log = logging.getLogger(__name__)
@@ -109,9 +107,8 @@ def get_presto_catalog_schema():
 
 def print_all(df):
     if df is not None:
-        with pd.option_context(
-                "display.max_rows", None,
-                "display.max_columns", None):
+        with pd.option_context("display.max_rows", None, "display.max_columns",
+                               None):
             print(df.to_string(index=False))
 
 
@@ -161,8 +158,9 @@ def print_name_value_dict(name_value, formatter=None):
             formatted_value = get_formatted_value(value_formatter, value)
         else:
             formatted_value = value
-        print('{name:{width}s} : {value}'.format(
-            name=name, width=max_name_len, value=formatted_value))
+        print('{name:{width}s} : {value}'.format(name=name,
+                                                 width=max_name_len,
+                                                 value=formatted_value))
 
 
 def dataframe_to_dict(df):
@@ -186,7 +184,6 @@ class HeaderDataFrame:
         return out
 
 
-
 def _srs_match_index(srs, match_str):
     match_list = srs.index[srs == match_str].values
     if len(match_list) > 0:
@@ -197,16 +194,16 @@ def _srs_match_index(srs, match_str):
 def _remove_empty_rows(df):
     df2 = df.replace(to_replace=[None], value=[''])
     empty_rows = [
-        idx for idx, row in df2.iterrows(
-            ) if row.unique().shape[0] == 1]
+        idx for idx, row in df2.iterrows() if row.unique().shape[0] == 1
+    ]
     return df2.drop(axis='index', index=empty_rows)
 
 
 def _remove_empty_cols(df):
     df2 = df.replace(to_replace=[None], value=[''])
     empty_cols = [
-        col for col, row in df2.iteritems(
-            ) if row.unique().shape[0] == 1]
+        col for col, row in df2.iteritems() if row.unique().shape[0] == 1
+    ]
     return df2.drop(axis='columns', columns=empty_cols)
 
 
@@ -231,17 +228,14 @@ def _print_clean_name_value_df(df, formatter=None):
 def _get_header_dataframes(df):
     col_names = df.col_name.str.strip()
     matches = [
-        '# col_name',
-        '# Partition Information',
-        '# Detailed Table Information',
-        'Table Parameters:',
-        '# Storage Information',
-        'Storage Desc Params:'
+        '# col_name', '# Partition Information',
+        '# Detailed Table Information', 'Table Parameters:',
+        '# Storage Information', 'Storage Desc Params:'
     ]
-    match_idx_list = [
-        _srs_match_index(col_names, match) for match in matches]
+    match_idx_list = [_srs_match_index(col_names, match) for match in matches]
     valid_match_idx_list = [
-        match_idx for match_idx in match_idx_list if match_idx >= 0]
+        match_idx for match_idx in match_idx_list if match_idx >= 0
+    ]
     all_match_idx_list = valid_match_idx_list + [col_names.size]
 
     header_dataframes = []
@@ -251,26 +245,22 @@ def _get_header_dataframes(df):
         header = _get_header_row_df(df_part, matches)
         if header:
             df_output = df_part.iloc[1:, ]
-            header_dataframes.append(
-                HeaderDataFrame(header, df_output))
+            header_dataframes.append(HeaderDataFrame(header, df_output))
         else:
             df_output = df_part
-            header_dataframes.append(
-                HeaderDataFrame(None, df_output))
+            header_dataframes.append(HeaderDataFrame(None, df_output))
     return header_dataframes
 
 
 def _desc_formatted(host, port, table, database):
     sql = 'desc formatted'
-    df = get_hive_records_database_dot_table(
-        host, port, sql, database, table)
+    df = get_hive_records_database_dot_table(host, port, sql, database, table)
     return _get_header_dataframes(df)
 
 
 def get_hive_table_location(host, port, table, database):
     ' returns the location of a hive table if it exists or None '
-    header_dataframes = _desc_formatted(
-        host, port, table, database)
+    header_dataframes = _desc_formatted(host, port, table, database)
 
     locations = []
     for hdf in header_dataframes:
@@ -278,20 +268,20 @@ def get_hive_table_location(host, port, table, database):
         if header == '# Detailed Table Information':
             df_clean = _remove_empty_rows_cols(dataframe)
             name_value = dataframe_to_dict(df_clean)
-            locations = [value for name, value in name_value.items(
-                ) if name.startswith('Location:')]
+            locations = [
+                value for name, value in name_value.items()
+                if name.startswith('Location:')
+            ]
     if len(locations) > 0:
         return locations[0]
     return None
 
 
-def get_s3_parquet_file(
-        s3_location, parq_file_path, client_kwargs=None):
+def get_s3_parquet_file(s3_location, parq_file_path, client_kwargs=None):
     ' copy parquet file to local machine '
-    file_system = s3fs.S3FileSystem(
-        client_kwargs=client_kwargs)
+    file_system = s3fs.S3FileSystem(client_kwargs=client_kwargs)
 
-    new_files = file_system.ls(s3_location)
+    # new_files = file_system.ls(s3_location)
     # remove zero sized files if exist
     # if len(files) > 1:
     #     new_files = files[:-1]
@@ -304,7 +294,8 @@ def get_s3_parquet_file(
     pq.write_table(parq_table, parq_file_path)
     parq_path = pathlib.Path(parq_file_path)
     print('Saved to file {}, size {:,d} bytes'.format(
-        parq_path.name, parq_path.stat().st_size))
+        parq_path.name,
+        parq_path.stat().st_size))
 
 
 class HiveDatabase:
@@ -332,21 +323,21 @@ class HiveDatabase:
         database_valid = check_hive_database(database)
         sql = 'show tables'
         host, port = get_hive_host_port()
-        tables = get_hive_records_database_like_table(
-            host, port, sql, database_valid)
+        tables = get_hive_records_database_like_table(host, port, sql,
+                                                      database_valid)
         print_all(tables)
 
-    def show_table(self, table, database):
+    def show_table(self, database, table):
         ''' show table
         '''
         database_valid = check_hive_database(database)
         sql = 'show tables'
         host, port = get_hive_host_port()
-        tables = get_hive_records_database_like_table(
-            host, port, sql, database_valid, table)
+        tables = get_hive_records_database_like_table(host, port, sql,
+                                                      database_valid, table)
         print(tables)
 
-    def show_table_extended(self, table, database):
+    def show_table_extended(self, database, table):
         ''' show more table info
         '''
         database_valid = check_hive_database(database)
@@ -361,15 +352,14 @@ class HiveDatabase:
                     name_value[items[0]] = ':'.join(items[1:])
             print(pd.Series(name_value))
 
-    def show_create_table(self, table, database):
-        '''
-            validate table
+    def show_create_table(self, database, table):
+        ''' show sql create table
         '''
         database_valid = check_hive_database(database)
         sql = 'show create table'
         host, port = get_hive_host_port()
-        table = get_hive_records_database_dot_table(
-            host, port, sql, database_valid, table)
+        table = get_hive_records_database_dot_table(host, port, sql,
+                                                    database_valid, table)
         lines = table.createtab_stmt.values
         console = Console()
         # print('\n'.join(lines))
@@ -380,23 +370,22 @@ class HiveDatabase:
     def _get_create_stmt(database, table):
         sql = 'show create table'
         host, port = get_hive_host_port()
-        table = get_hive_records_database_dot_table(
-            host, port, sql, database, table)
+        table = get_hive_records_database_dot_table(host, port, sql, database,
+                                                    table)
         lines = table.createtab_stmt.values
         create_stmt = '\n'.join(lines)
         return create_stmt
 
     @staticmethod
     def _show_create_tables(database):
-
         def print_indent(text, indent_level: int, indent_str='\t'):
             assert indent_level > 0, 'indent_level should be greater than 0'
             print(textwrap.indent(text, indent_str * indent_level))
 
         sql = 'show tables'
         host, port = get_hive_host_port()
-        tables = get_hive_records_database_like_table(
-            host, port, sql, database)
+        tables = get_hive_records_database_like_table(host, port, sql,
+                                                      database)
 
         table_count_str = 'Database {} has {} tables'.format(
             database, tables.shape[0])
@@ -404,8 +393,8 @@ class HiveDatabase:
 
         create_stmt_list = []
         for idx, table in enumerate(tables.tab_name.values):
-            table_number_str = '{}: {} of {}'.format(
-                table, idx, tables.shape[0])
+            table_number_str = '{}: {} of {}'.format(table, idx,
+                                                     tables.shape[0])
             print_indent(table_number_str, 2)
 
             create_stmt = HiveDatabase._get_create_stmt(database, table)
@@ -429,45 +418,39 @@ class HiveDatabase:
                 database, idx, databases.shape[0]))
             HiveDatabase._show_create_tables(database)
 
-    def show_partitions(self, table, database=None):
+    def show_partitions(self, database, table):
+        ''' show partitions for a hive table
         '''
-            validate table
-        '''
-        if database is not None:
-            database = check_hive_database(database)
+        database_valid = check_hive_database(database)
         sql = 'show partitions'
         host, port = get_hive_host_port()
         partitions = get_hive_records_database_dot_table(
-            host, port, sql, database, table)
+            host, port, sql, database_valid, table)
         print(partitions)
 
-    def show_tblproperties(self, table, database=None):
+    def show_tblproperties(self, database, table):
+        ''' display table properties
         '''
-            validate table
-        '''
-        if database is not None:
-            database = check_hive_database(database)
+        database_valid = check_hive_database(database)
         sql = 'show tblproperties'
         host, port = get_hive_host_port()
-        table = get_hive_records_database_dot_table(
-            host, port, sql, database, table)
+        table = get_hive_records_database_dot_table(host, port, sql, database_valid,
+                                                    table)
         name_value = dataframe_to_dict(table)
         formatter = {
             'transient_lastDdlTime':
-                lambda ts: datetime.datetime.fromtimestamp(int(ts))
+            lambda ts: datetime.datetime.fromtimestamp(int(ts))
         }
         print_name_value_dict(name_value, formatter)
 
-    def show_columns(self, table, database=None):
+    def show_columns(self, database, table):
+        ''' display table columns
         '''
-            validate table
-        '''
-        if database is not None:
-            database = check_hive_database(database)
+        database_valid = check_hive_database(database)
         sql = 'show columns in '
         host, port = get_hive_host_port()
-        tables = get_hive_records_database_dot_table(
-            host, port, sql, database, table)
+        tables = get_hive_records_database_dot_table(host, port, sql, database_valid,
+                                                     table)
         print(tables)
 
     def show_functions(self):
@@ -479,26 +462,23 @@ class HiveDatabase:
         for idx, function in enumerate(functions.tab_name.values):
             print(idx, function)
 
-    def desc(self, table, database=None):
+    def desc(self, database, table):
         ''' shows list of columns including partition
         '''
-        if database is not None:
-            database = check_hive_database(database)
+        database_valid = check_hive_database(database)
         sql = 'desc'
         host, port = get_hive_host_port()
-        info = get_hive_records_database_dot_table(
-            host, port, sql, database, table)
+        info = get_hive_records_database_dot_table(host, port, sql, database_valid,
+                                                   table)
         print_all(info)
 
-    def desc_formatted(self, table, database=None):
+    def desc_formatted(self, database, table):
         ''' show table metadata in tablular format
         '''
-        if database is not None:
-            database = check_hive_database(database)
+        database_valid = check_hive_database(database)
         host, port = get_hive_host_port()
 
-        header_dataframes = _desc_formatted(
-            host, port, table, database)
+        header_dataframes = _desc_formatted(host, port, table, database_valid)
 
         formatter = {
             'numRows': lambda x: '{:,d}'.format(int(x)),
@@ -513,48 +493,44 @@ class HiveDatabase:
             df_clean = _remove_empty_rows_cols(dataframe)
             _print_clean_name_value_df(df_clean, formatter)
 
-    def show_table_location(self, table, database=None):
+    def show_table_location(self, database, table):
         ''' show table file location if exist
         '''
-        if database is not None:
-            database = check_hive_database(database)
+        database_valid = check_hive_database(database)
         host, port = get_hive_host_port()
 
-        table_location = get_hive_table_location(host, port, table, database)
+        table_location = get_hive_table_location(host, port, table, database_valid)
         if table_location:
             print(table_location)
         else:
             print('Cannot find file for table {}'.format(table))
 
-    def get_table_s3(self, table, database=None):
+    def get_table_s3(self, database, table):
         ''' get hive table stored as a parquet file
         '''
-        if database is not None:
-            database = check_hive_database(database)
+        database_valid = check_hive_database(database)
         host, port = get_hive_host_port()
         client_kwargs = get_s3_client_kwargs()
-        table_location = get_hive_table_location(host, port, table, database)
+        table_location = get_hive_table_location(host, port, table, database_valid)
         print('hive table {}, location {}'.format(table, table_location))
         if table_location:
             if table_location.startswith('s3'):
                 with timed():
                     parq_file_path = '{}.parq'.format(table)
-                    get_s3_parquet_file(
-                        table_location, parq_file_path, client_kwargs)
+                    get_s3_parquet_file(table_location, parq_file_path,
+                                        client_kwargs)
             else:
-                sys.exit(
-                    'Can only read s3 files. Unknown location: {}'.format(
-                        table_location))
+                sys.exit('Can only read s3 files. Unknown location: {}'.format(
+                    table_location))
         else:
             print('Cannot find file for table {}'.format(table))
 
-    def export_metadata(self, table, database=None):
+    def export_metadata(self, database, table):
         ''' export table metadata
         '''
-        if database is not None:
-            database = check_hive_database(database)
+        database_valid = check_hive_database(database)
         host, port = get_hive_host_port()
-        metadata = get_hive_sa_metadata(host, port, database)
+        metadata = get_hive_sa_metadata(host, port, database_valid)
 
         with warnings.catch_warnings():
             # ignore sqlalchemy warnings SAWarning: Did not recognize type
@@ -571,7 +547,8 @@ class HiveDatabase:
                     col_type = column.type
                 else:
                     col_type = 'UNKNOWN'
-                col_info = TableColumnInfo(str(column.name), str(col_type), column.nullable)
+                col_info = TableColumnInfo(str(column.name), str(col_type),
+                                           column.nullable)
                 col_info_list.append(col_info_as_dict(col_info))
 
         tbl_yaml = yaml.dump(table_info, sort_keys=False)
@@ -581,8 +558,8 @@ class HiveDatabase:
 def display_df_all(df):
     max_rows = 1000
     max_cols = 1000
-    with pd.option_context(
-            "display.max_rows", max_rows, "display.max_columns", max_cols):
+    with pd.option_context("display.max_rows", max_rows, "display.max_columns",
+                           max_cols):
         print(df)
 
 
@@ -619,10 +596,13 @@ def check_hive_env():
 
 TableColumnInfo = namedtuple('TableColumnInfo', 'name col_type nullable')
 
+
 def col_info_as_dict(col_info):
     return {
-        name.replace('col_type', 'type'): val for name, val in col_info._asdict().items()
+        name.replace('col_type', 'type'): val
+        for name, val in col_info._asdict().items()
     }
+
 
 class PrestoDatabase:
     ''' display meta data from a presto database
@@ -645,7 +625,6 @@ class PrestoDatabase:
 
     describe database.table;
     '''
-
     def prepare_describe(self, schema, catalog):
         table = 'million_rows'
         sql = '''
@@ -678,7 +657,7 @@ class PrestoDatabase:
         catalogs = get_presto_records(host, port, sql)
         print(catalogs)
 
-    def show_tables(self, schema, catalog):
+    def show_tables(self, catalog, schema):
         ''' show tables
         '''
         valid_catalog = check_presto_catalog(catalog)
@@ -687,25 +666,23 @@ class PrestoDatabase:
         tables = get_presto_records(host, port, sql)
         print_all(tables)
 
-    def show_table(self, table, schema, catalog):
+    def show_table(self, catalog, schema, table):
         '''
         '''
-        sql = "show tables from {}.{} like '{}'".format(
-            catalog, schema, table)
+        sql = "show tables from {}.{} like '{}'".format(catalog, schema, table)
         host, port = get_presto_host_port()
         tables = get_presto_records(host, port, sql)
         print(tables)
 
-    def show_columns(self, table, schema, catalog):
+    def show_columns(self, catalog, schema, table):
         '''
         '''
-        sql = "show columns from {}.{}.{}".format(
-            catalog, schema, table)
+        sql = "show columns from {}.{}.{}".format(catalog, schema, table)
         host, port = get_presto_host_port()
         columns = get_presto_records(host, port, sql)
         print(columns)
 
-    def show_create_table(self, table, schema, catalog):
+    def show_create_table(self, catalog, schema, table):
         '''
             show create table
         '''
@@ -715,7 +692,7 @@ class PrestoDatabase:
         create_stmt = df[['Create Table']].values[0][0]
         print(create_stmt)
 
-    def show_create_view(self, table, schema, catalog):
+    def show_create_view(self, catalog, schema, table):
         ''' show create view
         '''
         sql = 'show create view {}.{}.{}'.format(catalog, schema, table)
@@ -725,7 +702,7 @@ class PrestoDatabase:
         create_stmt = df[['Create View']].values[0][0]
         print(create_stmt)
 
-    def show_stats(self, table, schema, catalog):
+    def show_stats(self, catalog, schema, table):
         ''' show table statistics
         '''
         sql = 'show stats for {}.{}.{}'.format(catalog, schema, table)
@@ -734,7 +711,7 @@ class PrestoDatabase:
         # print(stats)
         print_all(stats)
 
-    def export_metadata(self, table, schema, catalog):
+    def export_metadata(self, catalog, schema, table):
         ''' export table metadata
         '''
         host, port = get_presto_host_port()
@@ -755,16 +732,15 @@ class PrestoDatabase:
                     col_type = column.type
                 else:
                     col_type = 'UNKNOWN'
-                col_info = TableColumnInfo(str(column.name), str(col_type), column.nullable)
+                col_info = TableColumnInfo(str(column.name), str(col_type),
+                                           column.nullable)
                 col_info_list.append(col_info_as_dict(col_info))
 
         tbl_yaml = yaml.dump(table_info, sort_keys=False)
         print(tbl_yaml)
 
-
     def _desc_table(self, table, schema):
-        '''
-            describe table from hive
+        '''describe table from hive
         '''
         assert False, 'May not be used'
 
@@ -774,8 +750,7 @@ class PrestoDatabase:
         print(df)
 
     def _desc_tables(self):
-        '''
-            describe all tables from hive.flat_rtb
+        '''describe all tables from hive.flat_rtb
         '''
         assert False, 'May not be used'
 
@@ -801,9 +776,8 @@ class PrestoDatabase:
             len(df_list), column_count)
         print(message)
         all_tables = pd.concat(df_list, axis='index')
-        print(
-            'max comment length {}'.format(
-                all_tables.Comment.str.len().max()))
+        print('max comment length {}'.format(
+            all_tables.Comment.str.len().max()))
 
 
 def check_copy_presto_table(host, port, catalog, schema, old_table, new_table):
@@ -821,7 +795,6 @@ def check_copy_presto_table(host, port, catalog, schema, old_table, new_table):
 class OpDatabase:
     ''' miscellaneous database operations
     '''
-
     def copy_presto_table(self, old_table, new_table):
         """ copy a Presto table into a new table with the same types
 
@@ -830,8 +803,8 @@ class OpDatabase:
         """
         host, port = get_presto_host_port()
         catalog, schema = get_presto_catalog_schema()
-        metadata = check_copy_presto_table(
-            host, port, catalog, schema, old_table, new_table)
+        metadata = check_copy_presto_table(host, port, catalog, schema,
+                                           old_table, new_table)
 
         old_sa_table = get_sa_table(metadata, old_table)
         print_sa_table(old_sa_table)
@@ -848,14 +821,16 @@ class OpDatabase:
         """
         host, port = get_presto_host_port()
         catalog, schema = get_presto_catalog_schema()
-        metadata = check_copy_presto_table(
-            host, port, catalog, schema, old_table, new_table)
+        metadata = check_copy_presto_table(host, port, catalog, schema,
+                                           old_table, new_table)
 
         old_sa_table = get_sa_table(metadata, old_table)
         print_sa_table(old_sa_table)
 
-        new_sa_table = get_sa_new_table(
-            metadata, old_table, new_table, smallest_int_types=True)
+        new_sa_table = get_sa_new_table(metadata,
+                                        old_table,
+                                        new_table,
+                                        smallest_int_types=True)
         create_sa_table_from_table(new_sa_table, old_sa_table)
         print_sa_table(new_sa_table)
 
@@ -871,7 +846,7 @@ class ParquetAction:
     '''
     def desc(self, file_name):
         ' describe the pieces and schema of a parquet file '
-        if  file_name.startswith('s3://'):
+        if file_name.startswith('s3://'):
             # client_kwargs = {'endpoint_url': 'http://10.0.0.2:9000'}
             client_kwargs = get_s3_client_kwargs()
             file_system = s3fs.S3FileSystem(client_kwargs=client_kwargs)
@@ -955,7 +930,6 @@ class ClickhouseDatabase:
 
         metadata = yaml.load(meta_path.open(), Loader=yaml.SafeLoader)
 
-
         def get_clickhouse_type(sa_type):
             clickhouse_types = {
                 'BOOLEAN': ch_types.UInt8,
@@ -980,10 +954,10 @@ class ClickhouseDatabase:
                 if idx == 0:
                     tbl_col = sa_schema.Column(name, ch_type)
                 else:
-                    tbl_col = sa_schema.Column(name, ch_types.Nullable(ch_type))
+                    tbl_col = sa_schema.Column(name,
+                                               ch_types.Nullable(ch_type))
                 ch_columns.append(tbl_col)
             return ch_columns
-
 
         host, port = get_clickhouse_host_port()
         engine = get_clickhouse_engine(host, port, database)
@@ -996,20 +970,8 @@ class ClickhouseDatabase:
         new_table = sa_schema.Table(metadata['table'], meta)
         for idx, col in enumerate(ch_columns):
             new_table.append_column(col)
-        new_table.append_column(
-            engines.MergeTree(order_by=(first_col_name,)))
+        new_table.append_column(engines.MergeTree(order_by=(first_col_name, )))
         new_table.create(engine)
-        return
-
-        temp.append_column(
-            sa_schema.Column('id', ch_types.Int64))
-        temp.append_column(
-            sa_schema.Column('grp_code', ch_types.Nullable(ch_types.Int64)))
-        temp.append_column(
-            engines.MergeTree(order_by=('id',)))
-        temp.create(engine)
-
-        return
 
         sql = '''
         create table temp4
@@ -1031,12 +993,10 @@ class ClickhouseDatabase:
 
         meta = sa.sql.schema.MetaData()
         temp = sa_schema.Table('temp5', meta)
-        temp.append_column(
-            sa_schema.Column('id', ch_types.Int64))
+        temp.append_column(sa_schema.Column('id', ch_types.Int64))
         temp.append_column(
             sa_schema.Column('grp_code', ch_types.Nullable(ch_types.Int64)))
-        temp.append_column(
-            engines.MergeTree(order_by=('id',)))
+        temp.append_column(engines.MergeTree(order_by=('id', )))
         temp.create(engine)
 
 

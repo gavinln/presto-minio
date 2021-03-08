@@ -12,7 +12,6 @@ pandas = "*"
 mypy = "*"
 flake8 = "*"
 yapf = "*"
-fastapi = "*"
 docker-compose = "*"
 pyhive = {extras = ["hive"], version = "*"}
 fire = "*"
@@ -20,28 +19,22 @@ rich = "*"
 awscli = "*"
 pyarrow = "*"
 boto3 = "*"
-dbt-core = "*"
-dbt-presto = "*"
-dbt-postgres = "*"
-pytype = "*"
 sqlalchemy = "*"
 s3fs = "*"
 psycopg2 = "*"
-ibis-framework = {extras = ["postgres"], version = "*"}
 pylint = "*"
 ninja = "*"
 faker = "*"
-modin = {extras = ["ray"], version = "*"}
-dask = "*"
-ray = "*"
 more-itertools = "*"
 clickhouse-sqlalchemy = "*"
 pyyaml = "*"
 duckdb = "*"
 click = "*"
+vulture = "*"
+typer = "*"
 
 [requires]
 python_version = "3.8"
 
 [pipenv]
-allow_prereleases = true
+allow_prereleases = false
