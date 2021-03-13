@@ -32,6 +32,7 @@ duckdb = "*"
 click = "*"
 vulture = "*"
 typer = "*"
+typer-cli = "*"
 
 [requires]
 python_version = "3.8"

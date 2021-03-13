@@ -1,33 +1,20 @@
-import click
+import typer
 
-# python frank.py presto hello
-
-
-@click.group()
-def cli():
-    click.echo('in group')
+app = typer.Typer()
 
 
-@cli.group()
-def presto():
-    ' presto database commands '
-    click.echo('presto')
+@app.command()
+def hello(name: str):
+    typer.echo(f"Hello {name}")
 
 
-@cli.group()
-def hive():
-    ' hive database commands '
-    click.echo('hive')
-
-
-@presto.command()
-@click.option('--count', default=1, help='Number of greetings.')
-@click.option('--name', prompt='Your name', help='The person to greet.')
-def hello(count, name):
-    'Simple program that greets NAME for a total of COUNT times.'
-    for x in range(count):
-        click.echo('Hello %s!' % name)
+@app.command()
+def goodbye(name: str, formal: bool = False):
+    if formal:
+        typer.echo(f"Goodbye {name}. Have a good day.")
+    else:
+        typer.echo(f"Bye {name}!")
 
 
 if __name__ == '__main__':
-    cli()
+    app()
