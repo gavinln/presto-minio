@@ -57,6 +57,11 @@ postgres-stop:  ## Start Postges in container
 presto-hive:  ## run presto-hive db util
 	pipenv run python python/presto-hive.py
 
+.PHONY: frank
+frank:  ## run frank
+	PYTHONPATH=./python:$PYTHONPATH typer python/frank.py run --help
+
+
 .PHONY: clean
 clean:  ## remove targets and intermediate files
 	find . -type f -name "*.py[co]" -delete
