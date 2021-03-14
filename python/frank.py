@@ -1,20 +1,13 @@
 import typer
 
+import frank_hive
+import frank_presto
+
+
 app = typer.Typer()
 
-
-@app.command()
-def hello(name: str):
-    typer.echo(f"Hello {name}")
-
-
-@app.command()
-def goodbye(name: str, formal: bool = False):
-    if formal:
-        typer.echo(f"Goodbye {name}. Have a good day.")
-    else:
-        typer.echo(f"Bye {name}!")
-
+app.add_typer(frank_hive.app, name="hive")
+app.add_typer(frank_presto.app, name="presto")
 
 if __name__ == '__main__':
     app()
