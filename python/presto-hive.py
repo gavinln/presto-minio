@@ -81,16 +81,16 @@ def pairwise(iterable):
 
 def get_hive_host_port():
     host = '10.0.0.2'
-    # host = 'hive.liftoff.io'
+    host = 'hive.liftoff.io'
     port = 10000
     return host, port
 
 
 def get_presto_host_port():
     host = '10.0.0.2'
-    # host = 'presto.liftoff.io'
+    host = 'presto.liftoff.io'
     port = 8080
-    # port = 8889
+    port = 8889
     return host, port
 
 
@@ -102,11 +102,70 @@ def get_clickhouse_host_port():
 
 def get_s3_client_kwargs():
     client_kwargs = {'endpoint_url': 'http://10.0.0.2:9001'}
+    client_kwargs = {}
     return client_kwargs
 
 
 def get_presto_catalog_schema():
     return 'hive', 'temp'
+
+
+def to_string_ljustify(df):
+    ''' pandas dataframe to a string with left justified text
+    '''
+    col_formatters = []
+    for col_name in df.columns:
+        col = df[col_name]
+        if col.dtype == 'object':
+            col_len_max = col.apply(len).max()
+            col_format = '{{:<{}s}}'.format(col_len_max)
+            col_formatters.append(col_format.format)
+        else:
+            col_formatters.append(None)
+
+    # left justify strings
+    str_df = df.to_string(index=False, formatters=col_formatters)
+    # remove trailing whitespaces
+    return '\n'.join(line.rstrip() for line in str_df.split('\n'))
+
+    # default printing is right justified
+    # return df.to_string(index=False)
+
+
+def test_to_string_ljustify():
+    d = {'c1': ['1', '222', '3'], 'c2': [4, 25, 6], 'c3': ['111', '2', '3']}
+    df = pd.DataFrame(d)
+
+    out = '''
+
+  c1  c2   c3
+ 1     4  111
+ 222  25  2
+ 3     6  3'''
+
+    def compare_line_by_line(item1, item2):
+        lines1 = item1.split('\n')
+        lines2 = item2.split('\n')
+        assert len(lines1) == len(lines2), 'Does not match'
+
+        for l1, l2 in zip(lines1, lines2):
+            assert l1.strip() == l2.strip(), f'mismatch ({l1}), ({l2})'
+
+    out_str = out.replace('\n\n', '')
+    out_df = to_string_ljustify(df)
+    compare_line_by_line(out_str, out_df)
+
+
+def print_tty_redir(df):
+    ''' print data frame to a tty (partial) or redirected output (full)
+    '''
+    if df is not None:
+        if sys.stdout.isatty():
+            print(df.to_string(index=False))
+        else:
+            with pd.option_context("display.max_rows", None,
+                                   "display.max_columns", None):
+                print(to_string_ljustify(df))
 
 
 def get_formatted_value(formatter, value):
@@ -299,7 +358,7 @@ class HiveDatabase:
         sql = 'show tables'
         tables = get_hive_records_database_like_table(host, port, sql,
                                                       database_valid)
-        print_all(tables)
+        print_tty_redir(tables)
 
     def show_table(self, database, table):
         ''' show table
@@ -425,7 +484,7 @@ class HiveDatabase:
         sql = 'show columns in '
         tables = get_hive_records_database_dot_table(host, port, sql,
                                                      database_valid, table)
-        print(tables)
+        print_tty_redir(tables)
 
     def show_functions(self):
         ''' list all functions
@@ -444,7 +503,7 @@ class HiveDatabase:
         sql = 'desc'
         info = get_hive_records_database_dot_table(host, port, sql,
                                                    database_valid, table)
-        print_all(info)
+        print_tty_redir(info)
 
     def desc_formatted(self, database, table):
         ''' show table metadata in tablular format
@@ -615,7 +674,7 @@ class PrestoDatabase:
         #     describe input myselect
         # '''.format(catalog, schema, table)
         # results = get_presto_records(host, port, sql)
-        # print_all(results)
+        # print_tty_redir(results)
 
     def show_catalogs(self):
         '''
@@ -640,7 +699,7 @@ class PrestoDatabase:
         sql = 'show tables from {}.{}'.format(catalog, schema)
         host, port = get_presto_host_port()
         tables = get_presto_records(host, port, sql)
-        print_all(tables)
+        print_tty_redir(tables)
 
     def show_table(self, catalog, schema, table):
         '''
@@ -656,7 +715,7 @@ class PrestoDatabase:
         sql = "show columns from {}.{}.{}".format(catalog, schema, table)
         host, port = get_presto_host_port()
         columns = get_presto_records(host, port, sql)
-        print(columns)
+        print_tty_redir(columns)
 
     def show_create_table(self, catalog, schema, table):
         '''
@@ -685,7 +744,7 @@ class PrestoDatabase:
         host, port = get_presto_host_port()
         stats = get_presto_records(host, port, sql)
         # print(stats)
-        print_all(stats)
+        print_tty_redir(stats)
 
     def export_metadata(self, catalog, schema, table):
         ''' export table metadata
