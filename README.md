@@ -727,6 +727,15 @@ cat ft_million_clustered.parq| clickhouse-local --structure "id Int64, grp_code 
 
 ```
 
+## Frank command line
+
+To run the frank command line type the following
+
+```
+export PYTHONPATH=.:$PYTHONPATH
+echo typer frank.py run hive/presto
+```
+
 ## Links
 
 1. [Presto releases][1000]
@@ -842,3 +851,4 @@ Query Presto and Hive metadata using ./python/presto-hive.py
 ### Update Hive versions in Docker
 
 https://github.com/fredrikhgrelland/docker-hive
+
