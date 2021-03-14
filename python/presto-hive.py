@@ -38,9 +38,13 @@ from clickhouse_sqlalchemy import types as ch_types
 from clickhouse_sqlalchemy import engines
 
 from query_yes_no import query_yes_no
+
+from presto_hive_lib import print_all
 from presto_hive_lib import get_presto_records
 from presto_hive_lib import get_presto_catalogs
 
+from presto_hive_lib import get_hive_databases
+from presto_hive_lib import check_hive_database
 from presto_hive_lib import get_hive_records
 from presto_hive_lib import get_hive_records_database_like_table
 from presto_hive_lib import get_hive_records_database_dot_table
@@ -103,35 +107,6 @@ def get_s3_client_kwargs():
 
 def get_presto_catalog_schema():
     return 'hive', 'temp'
-
-
-def print_all(df):
-    if df is not None:
-        with pd.option_context("display.max_rows", None, "display.max_columns",
-                               None):
-            print(df.to_string(index=False))
-
-
-def get_hive_databases(host, port):
-    sql = 'show databases'
-    return get_hive_records(host, port, sql)
-
-
-def check_hive_database(database):
-    ' returns valid database or raises error if not valid '
-    host, port = get_hive_host_port()
-    databases = get_hive_databases(host, port)
-    names = databases.database_name.values
-    # TODO: should this be case-insensitive?
-    if database in names:
-        return database
-    close_matches = difflib.get_close_matches(database, names)
-    if len(close_matches) > 0:
-        message = 'Did you mean {}?'.format(close_matches[0])
-        response = query_yes_no(message)
-        if response:
-            return close_matches[0]
-    raise ValueError('Invalid database name {}'.format(database))
 
 
 def get_formatted_value(formatter, value):
@@ -310,7 +285,6 @@ class HiveDatabase:
         presto-hive.py hive show-tblproperties customer_text --database default
         presto-hive.py hive desc-formatted customer_text --database default
     '''
-
     def show_databases(self):
         ' list all databases '
         host, port = get_hive_host_port()
@@ -320,9 +294,9 @@ class HiveDatabase:
     def show_tables(self, database):
         ''' list all tables
         '''
-        database_valid = check_hive_database(database)
-        sql = 'show tables'
         host, port = get_hive_host_port()
+        database_valid = check_hive_database(host, port, database)
+        sql = 'show tables'
         tables = get_hive_records_database_like_table(host, port, sql,
                                                       database_valid)
         print_all(tables)
@@ -330,9 +304,9 @@ class HiveDatabase:
     def show_table(self, database, table):
         ''' show table
         '''
-        database_valid = check_hive_database(database)
-        sql = 'show tables'
         host, port = get_hive_host_port()
+        database_valid = check_hive_database(host, port, database)
+        sql = 'show tables'
         tables = get_hive_records_database_like_table(host, port, sql,
                                                       database_valid, table)
         print(tables)
@@ -340,8 +314,8 @@ class HiveDatabase:
     def show_table_extended(self, database, table):
         ''' show more table info
         '''
-        database_valid = check_hive_database(database)
         host, port = get_hive_host_port()
+        database_valid = check_hive_database(host, port, database)
         df = get_hive_table_extended(host, port, table, database_valid)
         if df.size == 0:
             print('table {} not found'.format(table))
@@ -355,9 +329,9 @@ class HiveDatabase:
     def show_create_table(self, database, table):
         ''' show sql create table
         '''
-        database_valid = check_hive_database(database)
-        sql = 'show create table'
         host, port = get_hive_host_port()
+        database_valid = check_hive_database(host, port, database)
+        sql = 'show create table'
         table = get_hive_records_database_dot_table(host, port, sql,
                                                     database_valid, table)
         lines = table.createtab_stmt.values
@@ -421,9 +395,9 @@ class HiveDatabase:
     def show_partitions(self, database, table):
         ''' show partitions for a hive table
         '''
-        database_valid = check_hive_database(database)
-        sql = 'show partitions'
         host, port = get_hive_host_port()
+        database_valid = check_hive_database(host, port, database)
+        sql = 'show partitions'
         partitions = get_hive_records_database_dot_table(
             host, port, sql, database_valid, table)
         print(partitions)
@@ -431,11 +405,11 @@ class HiveDatabase:
     def show_tblproperties(self, database, table):
         ''' display table properties
         '''
-        database_valid = check_hive_database(database)
-        sql = 'show tblproperties'
         host, port = get_hive_host_port()
-        table = get_hive_records_database_dot_table(host, port, sql, database_valid,
-                                                    table)
+        database_valid = check_hive_database(host, port, database)
+        sql = 'show tblproperties'
+        table = get_hive_records_database_dot_table(host, port, sql,
+                                                    database_valid, table)
         name_value = dataframe_to_dict(table)
         formatter = {
             'transient_lastDdlTime':
@@ -446,11 +420,11 @@ class HiveDatabase:
     def show_columns(self, database, table):
         ''' display table columns
         '''
-        database_valid = check_hive_database(database)
-        sql = 'show columns in '
         host, port = get_hive_host_port()
-        tables = get_hive_records_database_dot_table(host, port, sql, database_valid,
-                                                     table)
+        database_valid = check_hive_database(host, port, database)
+        sql = 'show columns in '
+        tables = get_hive_records_database_dot_table(host, port, sql,
+                                                     database_valid, table)
         print(tables)
 
     def show_functions(self):
@@ -465,18 +439,18 @@ class HiveDatabase:
     def desc(self, database, table):
         ''' shows list of columns including partition
         '''
-        database_valid = check_hive_database(database)
-        sql = 'desc'
         host, port = get_hive_host_port()
-        info = get_hive_records_database_dot_table(host, port, sql, database_valid,
-                                                   table)
+        database_valid = check_hive_database(host, port, database)
+        sql = 'desc'
+        info = get_hive_records_database_dot_table(host, port, sql,
+                                                   database_valid, table)
         print_all(info)
 
     def desc_formatted(self, database, table):
         ''' show table metadata in tablular format
         '''
-        database_valid = check_hive_database(database)
         host, port = get_hive_host_port()
+        database_valid = check_hive_database(host, port, database)
 
         header_dataframes = _desc_formatted(host, port, table, database_valid)
 
@@ -496,10 +470,11 @@ class HiveDatabase:
     def show_table_location(self, database, table):
         ''' show table file location if exist
         '''
-        database_valid = check_hive_database(database)
         host, port = get_hive_host_port()
+        database_valid = check_hive_database(host, port, database)
 
-        table_location = get_hive_table_location(host, port, table, database_valid)
+        table_location = get_hive_table_location(host, port, table,
+                                                 database_valid)
         if table_location:
             print(table_location)
         else:
@@ -508,10 +483,11 @@ class HiveDatabase:
     def get_table_s3(self, database, table):
         ''' get hive table stored as a parquet file
         '''
-        database_valid = check_hive_database(database)
         host, port = get_hive_host_port()
+        database_valid = check_hive_database(host, port, database)
         client_kwargs = get_s3_client_kwargs()
-        table_location = get_hive_table_location(host, port, table, database_valid)
+        table_location = get_hive_table_location(host, port, table,
+                                                 database_valid)
         print('hive table {}, location {}'.format(table, table_location))
         if table_location:
             if table_location.startswith('s3'):
@@ -528,8 +504,8 @@ class HiveDatabase:
     def export_metadata(self, database, table):
         ''' export table metadata
         '''
-        database_valid = check_hive_database(database)
         host, port = get_hive_host_port()
+        database_valid = check_hive_database(host, port, database)
         metadata = get_hive_sa_metadata(host, port, database_valid)
 
         with warnings.catch_warnings():

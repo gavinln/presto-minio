@@ -6,11 +6,13 @@ from time import time
 from datetime import datetime as dt
 from collections import namedtuple
 import textwrap
+import difflib
 
 from typing import Dict, Optional, Union, List
 
 from more_itertools import first
 
+from query_yes_no import query_yes_no
 from pyhive import presto
 from pyhive import hive
 
@@ -22,6 +24,34 @@ from sqlalchemy import MetaData
 from sqlalchemy.schema import Table
 
 from rich.console import Console
+
+
+def print_all(df):
+    if df is not None:
+        with pd.option_context("display.max_rows", None, "display.max_columns",
+                               None):
+            print(df.to_string(index=False))
+
+
+def get_hive_databases(host, port):
+    sql = 'show databases'
+    return get_hive_records(host, port, sql)
+
+
+def check_hive_database(host, port, database):
+    ' returns valid database or raises error if not valid '
+    databases = get_hive_databases(host, port)
+    names = databases.database_name.values
+    # TODO: should this be case-insensitive?
+    if database in names:
+        return database
+    close_matches = difflib.get_close_matches(database, names)
+    if len(close_matches) > 0:
+        message = 'Did you mean {}?'.format(close_matches[0])
+        response = query_yes_no(message)
+        if response:
+            return close_matches[0]
+    raise ValueError('Invalid database name {}'.format(database))
 
 
 def get_presto_connection(host, port):
@@ -158,7 +188,6 @@ def get_clickhouse_sa_metadata(host, port, database):
     engine = get_clickhouse_engine(host, port, database)
     metadata = MetaData(bind=engine)
     return metadata
-
 
 
 def print_sa_table_names(metadata):
@@ -363,7 +392,6 @@ class PrestoMeta:
                     name, ', '.join(catalog_names)))
         matched_catalogs = [pc for pc in catalogs if pc.name == name]
         return first(matched_catalogs, None)
-
 
     def catalogs(self) -> List[PrestoCatalog]:
         sql = 'show catalogs'
