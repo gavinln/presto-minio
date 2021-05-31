@@ -33,6 +33,7 @@ click = "*"
 vulture = "*"
 typer = "*"
 typer-cli = "*"
+docker = "*"
 
 [requires]
 python_version = "3.8"

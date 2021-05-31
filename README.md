@@ -562,109 +562,6 @@ docker-compose up -d
 /spark/bin/pyspark"
 ```
 
-## Ibis
-
-### Extract the Postgres sample database
-
-1. Change to the sample database directory
-
-```
-cd postgres
-```
-
-2. Extract the sample database
-
-```
-tar xvfz dvdrental.tar.gz
-```
-
-3. Connect to Docker container
-
-```
-CONTAINER_ID=$(docker container ls -f "ancestor=postgres:12.4" -q)
-docker exec -ti $CONTAINER_ID bash
-```
-
-4. Exit from Docker container
-
-```
-exit
-```
-
-5. Create databse dvdrental
-
-```
-SQL="create database dvdrental"
-docker exec -ti $CONTAINER_ID psql -U postgres -d postgres -c "$SQL"
-```
-
-6. Load database
-
-```
-docker exec -ti $CONTAINER_ID pg_restore -U postgres -d dvdrental /dvdrental.tar
-```
-
-[Ibis][500] provides a standard way to write analytics code, that then can be run in
-multiple engines both SQL and non-SQL systems.
-
-[500]: http://ibis-project.org/
-
-The GPU database [Omnisci][510] has one of the best documentation of IBIS of any
-backend.
-
-[510]: https://docs-new.omnisci.com/data-science/introduction-to-ibis
-
-This [article][520] demonstrates how to use ibis with Bigquery.
-
-[520]: https://towardsdatascience.com/ibis-a-framework-to-tie-together-development-and-production-code-588d05e07d11
-
-Ibis Spark backend [video][530]
-
-[530]: https://www.youtube.com/watch?v=vCipYUrlNQI
-
-Writing an [Ibis backend][540]
-
-[540]: https://github.com/ibis-project/ibis/issues/2307 
-
-[Notebook][550] with Ibis tutorial
-
-[550]: https://cloud.google.com/community/tutorials/bigquery-ibis
-
-[Ibis and Altair][560] for data exploration
-
-[560]: https://www.youtube.com/watch?v=1AUaddf5tk8
-
-Code sizes for backends
-
-```
-$ ls ibis/sql/postgres/*.py | xargs -I {} cat {} | wc
-   1097    3173   33393
-
-$ ls ibis/sql/mysql/*.py | xargs -I {} cat {} | wc
-    626    1524   17822
-
-$ ls ibis/sql/sqlite/*.py | xargs -I {} cat {} | wc
-    800    1930   20562
-
-$ ls ibis/omniscidb/*.py | xargs -I {} cat {} | wc
-   3931    9214  105421
-
-$ ls ibis/bigquery/*.py | xargs -I {} cat {} | wc
-   1385    3221   39921
-
-$ ls ibis/clickhouse/*.py | xargs -I {} cat {} | wc
-   1530    3484   42067
-
-$ ls ibis/impala/*.py | xargs -I {} cat {} | wc
-   5627   13758  158256
-
-$ ls ibis/pyspark/*.py | xargs -I {} cat {} | wc
-   1605    3969   43782
-
-$ ls ibis/spark/*.py | xargs -I {} cat {} | wc
-   1760    4080   49838
-```
-
 ## Miscellaneous
 
 Setup up AWS cli
@@ -734,6 +631,67 @@ To run the frank command line type the following
 ```
 export PYTHONPATH=.:$PYTHONPATH
 echo typer frank.py run hive/presto
+```
+
+## Hadoop Hive Presto Spark
+
+These docker services are created from https://github.com/tech4242/docker-hadoop-hive-parquet.git
+
+1. Install postgresql client
+
+```
+sudo apt install postgresql-client-12  # for Ubuntu 20.04
+```
+
+2. Connect to postgresql database
+
+```
+psql -h localhost -p 5432 -d metastore -U hive
+```
+
+### Start services
+
+1. Start the services
+
+```
+docker-compose up -d
+```
+
+2. View the running services and port
+
+``
+docker-compose ps
+``
+
+### View the services using the browser
+
+1. Connect to the server using ssh with SOCKS port forwarding (-D option)
+2. View the datanode at http://<server-ip>:50075/
+3. View the hive server at http://<server-ip>:10000/
+4. View the minio (S3) server at http://<server-ip>:9001/
+5. View the namenode at http://<server-ip>:50070/
+6. View the Presto server at http://<server-ip>:8088/
+7. View the Spark master at http://<server-ip>:8080/
+8. View the Spark worker at http://<server-ip>:8081/
+
+### HDFS quickstart
+
+1. Go the bash shell on the name node
+docker-compose exec namenode bash
+
+2. List the directories on the hdfs system
+hdfs dfs -ls /user/hive/warehouse
+
+```
+# not tested
+Copy breweries.csv to the namenode.
+docker cp breweries.csv namenode:breweries.csv
+
+Create a HDFS directory /data//openbeer/breweries.
+hdfs dfs -mkdir /data
+
+Copy breweries.csv to HDFS:
+hdfs dfs -put breweries.csv /data/breweries.csv
 ```
 
 ## Links
@@ -844,11 +802,24 @@ insert into ip_data4 values('name1', 'email@co.com', 'city1', 'state1', localtim
 
 ## Presto/Hive examples
 
+### Presto versions
+
+```
+presto-minio
+docker-hadoop-hive-parquet
+docker-hadoop-spark-TO_DEL
+```
+
+#### Setup Hadoop Hive Presto
+
+Use this repo: https://github.com/tech4242/docker-hadoop-hive-parquet.git
+
+#### Setup Spark
+
+Hive does not work correctly: https://github.com/Marcel-Jan/docker-hadoop-spark.git
+
+### Presto notes
+
 Create tables using the file ./presto-minio/presto-union-intersect.sql
 
 Query Presto and Hive metadata using ./python/presto-hive.py
-
-### Update Hive versions in Docker
-
-https://github.com/fredrikhgrelland/docker-hive
-
