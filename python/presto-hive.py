@@ -81,16 +81,16 @@ def pairwise(iterable):
 
 def get_hive_host_port():
     host = '10.0.0.2'
-    host = 'hive.liftoff.io'
+    # host = 'hive.liftoff.io'
     port = 10000
     return host, port
 
 
 def get_presto_host_port():
     host = '10.0.0.2'
-    host = 'presto.liftoff.io'
+    # host = 'presto.liftoff.io'
     port = 8080
-    port = 8889
+    port = 8088
     return host, port
 
 
