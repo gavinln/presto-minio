@@ -1,8 +1,8 @@
 -- botrignt Tnew
 
 -- ssh gavinsvr
--- cd ~/ws/presto-minio/presto-minio
--- java -jar presto-cli.jar
+-- cd ~/ws/presto-minio/docker-hadoop-hive-parquet/
+-- java -jar presto-cli.jar --server localhost:8088
 
 /*
 # Connect o Presto Docker container
@@ -27,7 +27,7 @@ show tables;
 # Target directory for table 'default.example' already exists: hdfs://hadoop-master:9000/user/hive/warehouse/example
 
 -- create table
-    create table example as
+    create table minio.default.example2 as
     select * from (
         values
             (1, 'a'),
@@ -39,24 +39,24 @@ show tables;
     ) as t (id, name)
    ;
 
-    show stats for example;
+    show stats for example2;
 
 -- display values
-    select * from example;
+    select * from example2;
 
--- drop table example;
+-- drop table example2;
 
 -- get table counts
     select name,
         sum(1) as id_count
-    from example
+    from example2
     group by 1
     ;
 
 -- get histogram
     with item_counts as (
         select histogram(name) as item_count
-        from example
+        from example2
     )
     select t.i, t.n
     from item_counts ic
@@ -65,12 +65,12 @@ show tables;
 
 -- get approx distinct
     select approx_distinct(name) as approx_name_count
-    from example
+    from example2
     ;
 
 -- get exact count
     select count(distinct name) as exact_name_count
-    from example
+    from example2
     ;
 
 /* Array functions */
@@ -129,13 +129,13 @@ show tables;
 /* Aggregate functions */
 
 -- array
-    select array_agg(name) from example;
+    select array_agg(name) from example2;
 
-    select max(id) from example;
+    select max(id) from example2;
 
-    select max_by(name, id) from example;
+    select max_by(name, id) from example2;
 
-    select min_by(name, id, 2) from example;
+    select min_by(name, id, 2) from example2;
 
 -- get sum per group
     SELECT id, reduce_agg(value, 0, (a, b) -> a + b, (a, b) -> a + b)

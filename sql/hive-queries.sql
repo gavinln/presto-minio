@@ -11,6 +11,9 @@
 -- https://cwiki.apache.org/confluence/display/Hive/Home
 -- https://cwiki.apache.org/confluence/display/Hive/LanguageManual+DDL
 
+-- docker-compose exec hive-server bash
+-- ./hive/bin/beeline -u jdbc:hive2://localhost:10000 --silent=true
+
 -- 
 select version();
 show tables;
