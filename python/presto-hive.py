@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 '''
 Display Presto and Hive metadata
 
@@ -17,6 +19,10 @@ import os
 import sys
 import warnings
 from collections import namedtuple
+from collections import defaultdict
+from typing import NamedTuple
+
+from operator import itemgetter
 
 import pandas as pd
 
@@ -88,7 +94,7 @@ def get_hive_host_port():
 
 def get_presto_host_port():
     host = '10.0.0.2'
-    # host = 'presto.liftoff.io'
+    host = 'presto.liftoff.io'
     port = 8080
     port = 8088
     return host, port
@@ -161,7 +167,8 @@ def print_tty_redir(df):
     '''
     if df is not None:
         if sys.stdout.isatty():
-            print(df.to_string(index=False))
+            print(df)
+            # print(df.to_string(index=False))
         else:
             with pd.option_context("display.max_rows", None,
                                    "display.max_columns", None):
@@ -207,6 +214,7 @@ def dataframe_to_dict(df):
 
 class HeaderDataFrame:
     ''' holds a header (text string) and data frame '''
+
     def __init__(self, header, dataframe):
         self.header = header
         self.dataframe = dataframe
@@ -336,14 +344,16 @@ class HiveDatabase:
     ''' display meta data from a hive database
 
         presto-hive.py hive show-databases
-        presto-hive.py hive show-tables --database default
-        presto-hive.py hive show-table customer_text --database default
-        presto-hive.py hive show-columns customer_text --database default
-        presto-hive.py hive show-create-table customer_text default
-        presto-hive.py hive show-table-extended customer_text default
-        presto-hive.py hive show-tblproperties customer_text --database default
-        presto-hive.py hive desc-formatted customer_text --database default
+        presto-hive.py hive show-tables rtb
+        presto-hive.py hive show-table rtb bids
+        presto-hive.py hive show-columns rtb bids
+        presto-hive.py hive show-columns proto2parquet bids
+        presto-hive.py hive show-create-table proto2parquet bids
+        # VERY SLOW: presto-hive.py hive show-table-extended proto2parquet bids
+        presto-hive.py hive show-tblproperties proto2parquet bids
+        presto-hive.py hive desc-formatted proto2parquet bids
     '''
+
     def show_databases(self):
         ' list all databases '
         host, port = get_hive_host_port()
@@ -639,6 +649,167 @@ def col_info_as_dict(col_info):
     }
 
 
+def is_basic_type(db_type: str) -> bool:
+    ' returns True if db_type is basic type '
+    return '(' not in db_type
+
+
+def get_presto_boolean_info_sql(catalog, schema, table, column):
+    sql = '''
+
+    with param as (
+        select
+        '2021-07-01T00:00:00.000Z' as start_dt,
+        '2021-07-02T00:00:00.000Z' as end_dt
+    )
+    select
+        count_if({column} = true) as true_count,
+        count_if({column} is null) as null_count,
+        count(*) as total_count,
+        '{column}' as col_name
+    from param p, {catalog}.{schema}.{table}
+    where dt >= p.start_dt and
+        dt < p.end_dt
+
+    '''.format(catalog=catalog, schema=schema, table=table, column=column)
+    return sql
+
+
+def get_presto_bigint_info_sql(catalog, schema, table, column):
+    sql = '''
+
+    with param as (
+        select
+        '2021-07-01T00:00:00.000Z' as start_dt,
+        '2021-07-02T00:00:00.000Z' as end_dt
+    )
+    select
+        min({column}) as min_val,
+        approx_percentile({column}, 0.5) as median_val,
+        avg({column}) as avg_val,
+        max({column}) as max_val,
+        approx_distinct({column}) as approx_dist,
+        count_if({column} is null) as null_count,
+        count(*) as total_count,
+        '{column}' as col_name
+    from param p, {catalog}.{schema}.{table}
+    where dt >= p.start_dt and
+        dt < p.end_dt
+
+    '''.format(catalog=catalog, schema=schema, table=table, column=column)
+    return sql
+
+
+def get_presto_varchar_info_sql(catalog, schema, table, column):
+    sql = '''
+
+    with param as (
+        select
+        '2021-07-01T00:00:00.000Z' as start_dt,
+        '2021-07-02T00:00:00.000Z' as end_dt
+    )
+    select
+        min(length({column})) as min_len,
+        approx_percentile(length({column}), 0.5) as median_len,
+        avg(length({column})) as avg_len,
+        max(length({column})) as max_len,
+        approx_distinct({column}) as approx_dist,
+        count_if({column} is null) as null_count,
+        count(*) as total_count,
+        '{column}' as col_name
+    from param p, {catalog}.{schema}.{table}
+    where dt >= p.start_dt and
+        dt < p.end_dt
+
+    '''.format(catalog=catalog, schema=schema, table=table, column=column)
+    return sql
+
+
+def get_presto_varchar_distinct_sql(catalog, schema, table, column):
+    sql = '''
+
+    with param as (
+        select
+        '2021-07-01T00:00:00.000Z' as start_dt,
+        '2021-07-02T00:00:00.000Z' as end_dt
+    )
+    select
+        distinct {column}
+    from param p, {catalog}.{schema}.{table}
+    where dt >= p.start_dt and
+        dt < p.end_dt
+
+    '''.format(catalog=catalog, schema=schema, table=table, column=column)
+    return sql
+
+
+def print_presto_column_distinct_values(
+        catalog, schema, table, column, column_type):
+    ' displays unique values for a Presto column '
+    if not is_basic_type(column_type):
+        assert False, 'Column {} is not a basic column type'.format(
+            column_type)
+
+    sql = None
+    if column_type in ['varchar']:
+        sql = get_presto_varchar_distinct_sql(catalog, schema, table, column)
+    elif column_type in ('bigint', 'integer', 'double', 'boolean'):
+        print('Not printing column {} of type {}'.format(
+            column, column_type))
+    else:
+        msg = 'Cannot print column info for column {} type {}'.format(
+            column, column_type)
+        assert False, msg
+
+    if sql:
+        host, port = get_presto_host_port()
+        column_info = get_presto_records(host, port, sql)
+        print_tty_redir(column_info)
+
+
+def print_presto_column_info(catalog, schema, table, column, column_type):
+    ' displays info about a Presto column '
+    if not is_basic_type(column_type):
+        assert False, 'Column {} is not a basic column type'.format(
+            column_type)
+
+    sql = None
+    if column_type in ['bigint', 'integer']:
+        sql = get_presto_bigint_info_sql(catalog, schema, table, column)
+    elif column_type == 'varchar':
+        sql = get_presto_varchar_info_sql(catalog, schema, table, column)
+    elif column_type == 'boolean':
+        # sql = get_presto_boolean_info_sql(catalog, schema, table, column)
+        pass
+    elif column_type == 'double':
+        print('Not printing column {} of type {}'.format(
+            column, column_type))
+    else:
+        msg = 'Cannot print column info for column {} type {}'.format(
+            column, column_type)
+        assert False, msg
+
+    if sql:
+        host, port = get_presto_host_port()
+        column_info = get_presto_records(host, port, sql)
+        select_column_info = column_info[['col_name', 'approx_dist']]
+        print_tty_redir(select_column_info)
+
+
+def is_analytics_hourly_group_column(col_name):
+    if col_name in [
+    ]:
+        return True
+    return False
+
+
+def _get_presto_columns(catalog, schema, table):
+    sql = "show columns from {}.{}.{}".format(catalog, schema, table)
+    host, port = get_presto_host_port()
+    columns = get_presto_records(host, port, sql)
+    return columns
+
+
 class PrestoDatabase:
     ''' display meta data from a presto database
 
@@ -660,6 +831,7 @@ class PrestoDatabase:
 
     describe database.table;
     '''
+
     def prepare_describe(self, schema, catalog):
         table = 'million_rows'
         sql = '''
@@ -712,10 +884,56 @@ class PrestoDatabase:
     def show_columns(self, catalog, schema, table):
         '''
         '''
-        sql = "show columns from {}.{}.{}".format(catalog, schema, table)
-        host, port = get_presto_host_port()
-        columns = get_presto_records(host, port, sql)
+        columns = _get_presto_columns(catalog, schema, table)
         print_tty_redir(columns)
+
+    def show_column_distinct(self, catalog, schema, table, column):
+        '''
+        '''
+        columns = _get_presto_columns(catalog, schema, table)
+        if column not in columns.Column.values:
+            print('Column {} does not exist in {} {} {}'.format(
+                column, catalog, schema, table))
+        else:
+            column_type = columns[columns.Column == column]['Type'].values
+            if column_type.size == 1:
+                print_presto_column_distinct_values(
+                    catalog, schema, table, column, column_type)
+            else:
+                assert False, 'Cannot get column_type for column {}'.format(
+                    column)
+
+    def show_column_info(self, catalog, schema, table, column):
+        '''
+        '''
+        columns = _get_presto_columns(catalog, schema, table)
+        if column not in columns.Column.values:
+            print('Column {} does not exist in {} {} {}'.format(
+                column, catalog, schema, table))
+        else:
+            column_type = columns[columns.Column == column]['Type'].values
+            if column_type.size == 1:
+                print_presto_column_info(
+                    catalog, schema, table, column, column_type)
+            else:
+                assert False, 'Cannot get column_type for column {}'.format(
+                    column)
+
+    def show_column_infos(self, catalog, schema, table):
+        '''
+        '''
+        columns = _get_presto_columns(catalog, schema, table)
+        for column in columns.Column.values:
+            if is_analytics_hourly_group_column(column):
+                column_type = columns[columns.Column == column]['Type'].values
+                if column_type.size == 1:
+                    # print(column, column_type)
+                    print_presto_column_info(
+                        catalog, schema, table, column, column_type)
+                else:
+                    msg = 'Cannot get column_type for column {}'.format(
+                        column)
+                    assert False, msg
 
     def show_create_table(self, catalog, schema, table):
         '''
@@ -830,6 +1048,7 @@ def check_copy_presto_table(host, port, catalog, schema, old_table, new_table):
 class OpDatabase:
     ''' miscellaneous database operations
     '''
+
     def copy_presto_table(self, old_table, new_table):
         """ copy a Presto table into a new table with the same types
 
@@ -879,6 +1098,7 @@ def print_parq_file_info(parq_file):
 class ParquetAction:
     ''' parquet actions
     '''
+
     def desc(self, file_name):
         ' describe the pieces and schema of a parquet file '
         if file_name.startswith('s3://'):
@@ -903,6 +1123,32 @@ def execute_clickhouse_sql(host, port, database, sql):
         conn.execute(sql)
 
 
+class TblCol:
+    def __init__(self, table, column):
+        self.table = table
+        self.column = column
+
+    def __str__(self):
+        return self.table + '.' + self.column
+
+    def __repr__(self):
+        return 'TblCol:' + self.table + '.' + self.column
+
+    def __eq__(self, other):
+        # if last two parts match then equal even if tables are not the same
+        col1 = self.column.split('__')
+        col2 = other.column.split('__')
+        if len(col1) >= 2 and len(col2) >= 2:
+            return col1[-1] == col2[-1] and col1[-2] == col2[-2]
+        elif self.table == other.table and self.column == other.column:
+            return True
+        return False
+
+    def __hash__(self):
+        col = self.column.split('__')
+        return hash(str(col[-1]))
+
+
 def get_clickhouse_records(host, port, database, sql):
     ' runs a clickhouse sql statement and returns dataframe result '
     engine = get_clickhouse_engine(host, port, database)
@@ -917,6 +1163,7 @@ def get_clickhouse_records(host, port, database, sql):
 class ClickhouseDatabase:
     ''' clickhouse operations
     '''
+
     def show_databases(self):
         ' show a list of all databases '
         host, port = get_clickhouse_host_port()
@@ -1039,9 +1286,9 @@ class Databases:
     def __init__(self):
         self.hive = HiveDatabase()
         self.presto = PrestoDatabase()
-        self.clickhouse = ClickhouseDatabase()
         self.op = OpDatabase()
         self.parquet = ParquetAction()
+        self.clickhouse = ClickhouseDatabase()
 
 
 if __name__ == '__main__':
