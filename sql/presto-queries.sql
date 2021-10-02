@@ -1,7 +1,7 @@
 -- botrignt Tnew
 
 -- ssh gavinsvr
--- cd ~/ws/presto-minio/docker-hadoop-hive-parquet/
+-- cd ~/ws/presto-minio/presto-hive-spark/
 -- java -jar presto-cli.jar --server localhost:8088
 
 /*

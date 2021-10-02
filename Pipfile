@@ -33,6 +33,7 @@ click = "*"
 vulture = "*"
 typer = "*"
 typer-cli = "*"
+awswrangler = "*"
 
 [requires]
 python_version = "3.8"
