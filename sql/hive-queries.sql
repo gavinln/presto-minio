@@ -2,6 +2,9 @@
 
 -- ssh gavinsvr
 -- cd ~/ws/presto-minio/presto-minio
+-- cd ~/ws/presto-minio/presto-minio-docker
+-- HIVE_IMG=bitsondatadev/hive-metastore
+-- docker exec -ti $(docker container ls -f "ancestor=$HIVE_IMG" -q) bash
 -- docker exec -ti $(docker container ls -f "ancestor=prestodb/cdh5.15-hive" -q) bash
 -- # run one of the two following lines
 -- hdfs dfs -ls hdfs://  # to list files

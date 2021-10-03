@@ -1,8 +1,8 @@
 -- botrignt Tnew
 
 -- ssh gavinsvr
--- cd ~/ws/presto-minio/presto-hive-spark/
--- java -jar presto-cli.jar --server localhost:8088
+-- cd ~/ws/presto-minio/presto-minio-docker/
+-- java -jar presto-cli.jar --server localhost:8080
 
 /*
 # Connect o Presto Docker container
@@ -169,3 +169,16 @@ show tables;
 -- table metadata
     show tables like 'external_data';
     show create table external_data;
+
+-- create table on minio
+    CREATE TABLE IF NOT EXISTS minio.iris.iris_parquet (
+      sepal_length DOUBLE,
+      sepal_width  DOUBLE,
+      petal_length DOUBLE,
+      petal_width  DOUBLE,
+      class        VARCHAR
+    )
+    WITH (
+          external_location = 's3a://iris/iris.parq',
+          format = 'PARQUET'
+    );

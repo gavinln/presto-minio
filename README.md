@@ -823,3 +823,23 @@ Hive does not work correctly: https://github.com/Marcel-Jan/docker-hadoop-spark.
 Create tables using the file ./presto-minio/presto-union-intersect.sql
 
 Query Presto and Hive metadata using ./python/presto-hive.py
+
+## Presto Minio Docker
+
+https://github.com/njanakiev/presto-minio-docker
+
+Docker images
+
+* ahanaio/prestodb
+* mariadb
+* bitsondatadev/hive-metastore
+* minio
+* postgres
+
+1. Change to the docker-compose directory
+cd presto-minio-docker
+
+2. Start the containers
+docker-compose up -d
+
+3. 
